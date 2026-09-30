@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>vertx-mqtt</artifactId>
-  <version>5.2.1-SNAPSHOT</version>
+  <version>5.2.0-iot-SNAPSHOT</version>
 
   <scm>
     <connection>scm:git:git@github.com:vert-x3/vertx-mqtt.git</connection>
@@ -27,18 +27,34 @@
   </developers>
 
   <properties>
+    <!-- IoT Invent build: the Vert.x release this fork is based on, the project version carries the -iot qualifier -->
+    <vertx.dependencies.version>5.2.0</vertx.dependencies.version>
     <junit.version>4.13.1</junit.version>
     <mockito.version>3.3.3</mockito.version>
     <paho.version>1.2.5</paho.version>
     <fabric8-docker-plugin.version>0.21.0</fabric8-docker-plugin.version>
   </properties>
 
+  <!-- IoT Invent build: repo.releases and repo.snapshots come from the Maven settings of the Jenkins build -->
+  <distributionManagement>
+    <repository>
+      <id>nexus</id>
+      <name>Release Repository</name>
+      <url>${repo.releases}</url>
+    </repository>
+    <snapshotRepository>
+      <id>nexus</id>
+      <name>Snapshot</name>
+      <url>${repo.snapshots}</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-dependencies</artifactId>
-        <version>${project.version}</version>
+        <version>${vertx.dependencies.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
