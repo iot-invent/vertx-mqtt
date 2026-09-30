@@ -1,19 +1,12 @@
 #!groovy
 @Library('iot-invent-shared') _
 
-// IoT Invent build of the vertx-mqtt fork. Only the iot branch carries this file, so neither the
-// upstream tracking branches nor pull request branches are built or deployed from here.
-//
-// Versions: the pom holds <base>-iot-SNAPSHOT, e.g. 5.2.0-iot-SNAPSHOT, where <base> is the Vert.x
-// release the fork is based on. A release is <base>-iot.<n>, counted from the v<base>-iot.<n> tags.
-// getNextRelease() does not fit: it yields plain X.Y.Z versions, which are the upstream releases.
+// Build of the iot branch. Versions: <base>-iot-SNAPSHOT, releases <base>-iot.<n> counted from the
+// v<base>-iot.<n> tags, <base> being the Vert.x release the fork is based on.
 pipeline {
 
-    // The test suite starts some hundred client threads (paho) and hits the task ceiling of the
-    // built-in node ("unable to create native thread"). it-runner has its own limits and a single
-    // executor, so the fixed ports 1883 and 8883 of the tests cannot collide with another build.
+    // The tests need many threads and the fixed ports 1883 and 8883
     agent { label 'it-runner' }
-    // jdk21 and M3 are resolved from the node's Tool Locations on it-runner
     tools {
         jdk 'jdk21'
         maven 'M3'
@@ -30,7 +23,7 @@ pipeline {
                 description: "Release instead of deploying a SNAPSHOT: builds the next free version <base>-iot.<n> (counted from the tags), deploys it and pushes the tag. Only on the iot branch.",
                 defaultValue: false)
         booleanParam(name: "INTEGRATION_TESTS",
-                description: "Also run the tests that start a Mosquitto broker via Testcontainers (MosquittoTest and all *IT). Needs Docker on the agent, which it-runner does not have yet.",
+                description: "Also run the tests that start a Mosquitto broker via Testcontainers (MosquittoTest and all *IT). Needs Docker on the agent.",
                 defaultValue: false)
         booleanParam(name: "CLEANUP",
                 description: "Cleanup Current Workspace.",
@@ -38,15 +31,9 @@ pipeline {
         string(name: "MVN_PARAMS", defaultValue: "", description: "Additional Maven Parameters for: mvn clean deploy")
     }
     environment {
-        // Two values of the shared settings file only hold on the controller:
-        // - the local repository /var/jenkins_home/.m2/repository does not exist on it-runner, and
-        //   Maven aborts instead of falling back. Single-quoted so Groovy leaves $HOME to the shell.
-        // - repo.releases/repo.snapshots point to http://nexus:8081, a name only the controller's
-        //   Docker network resolves. The same repositories are reachable under the public host,
-        //   the credentials of server id nexus stay with the settings. -D beats the settings profile.
+        // Local repository and deployment targets valid on the agent, single-quoted for the shell's $HOME
         MVN_AGENT = '-Dmaven.repo.local=$HOME/.m2/repository -Drepo.releases=https://repository.iot-invent.com/repository/iot-releases/ -Drepo.snapshots=https://repository.iot-invent.com/repository/iot-snapshots/'
-        // Without Docker MosquittoTest fails instead of skipping, the *IT classes are not picked up by default.
-        // An exclusion alone is no selection: surefire then treats every class as a test, module-info included.
+        // MosquittoTest needs Docker. An exclusion alone would make surefire load module-info as a test.
         TEST_SELECTION = "${params.INTEGRATION_TESTS ? "-Dtest='*Test,*IT'" : "-Dtest='*Test,!MosquittoTest'"} -Dsurefire.failIfNoSpecifiedTests=false"
     }
 
@@ -91,12 +78,8 @@ pipeline {
             }
         }
         stage('Upstream Advisories') {
-            // Behind Build & Deploy and Release on purpose: skipStagesAfterUnstable() is set, so an
-            // unstable result placed earlier would skip the deployment.
-            //
-            // Scanners compare versions: dependency-check parses 5.2.0-iot.1 as 5.2.0.1, so an advisory
-            // "up to and including 5.2.0" does not match the fork in the consumers' scans. The advisories
-            // of the Vert.x release the fork is based on are checked here instead.
+            // Last, as skipStagesAfterUnstable() would otherwise skip the deployment. Scanners read
+            // <base>-iot.<n> as above <base> and miss advisories "up to <base>", so <base> is checked here.
             steps {
                 script {
                     def base = readMavenPom(file: 'pom.xml').properties['vertx.dependencies.version']
