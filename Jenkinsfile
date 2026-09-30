@@ -78,6 +78,27 @@ pipeline {
                 }
             }
         }
+        stage('Upstream Advisories') {
+            // Behind Build & Deploy and Release on purpose: skipStagesAfterUnstable() is set, so an
+            // unstable result placed earlier would skip the deployment.
+            //
+            // Scanners compare versions: dependency-check parses 5.2.0-iot.1 as 5.2.0.1, so an advisory
+            // "up to and including 5.2.0" does not match the fork in the consumers' scans. The advisories
+            // of the Vert.x release the fork is based on are checked here instead.
+            steps {
+                script {
+                    def base = readMavenPom(file: 'pom.xml').properties['vertx.dependencies.version']
+                    def vulns = osvVulnerabilities('io.vertx:vertx-mqtt', base)
+                    if (vulns == null) {
+                        unstable "OSV could not be queried for io.vertx:vertx-mqtt:${base}, upstream advisories are unchecked"
+                    } else if (vulns) {
+                        unstable "OSV reports advisories for io.vertx:vertx-mqtt:${base}, the base of this fork:\n" + vulns.join('\n')
+                    } else {
+                        echo "OSV reports no advisories for io.vertx:vertx-mqtt:${base}"
+                    }
+                }
+            }
+        }
     }
 
     post { always { sendNotifications currentBuild.result } }
@@ -116,4 +137,23 @@ private int highestIotNumber(String listing, String line) {
         }
     }
     return best
+}
+
+/**
+ * The OSV advisories of a Maven artifact version as "<id> (<aliases>): <summary>" lines,
+ * an empty list if there are none, null if OSV could not be queried.
+ */
+def osvVulnerabilities(String coordinates, String version) {
+    def query = groovy.json.JsonOutput.toJson([package: [name: coordinates, ecosystem: 'Maven'], version: version])
+    writeFile file: 'osv-query.json', text: query
+    def status = sh(script: "curl -sS --fail --max-time 60 -X POST -H 'Content-Type: application/json' --data @osv-query.json -o osv-result.json https://api.osv.dev/v1/query", returnStatus: true)
+    if (status != 0) {
+        return null
+    }
+    def result = readJSON file: 'osv-result.json'
+    def lines = []
+    for (def v in (result.vulns ?: [])) {
+        lines << "${v.id} (${(v.aliases ?: []).join(', ')}): ${v.summary ?: ''}".toString()
+    }
+    return lines
 }
