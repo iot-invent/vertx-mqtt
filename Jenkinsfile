@@ -9,7 +9,11 @@
 // getNextRelease() does not fit: it yields plain X.Y.Z versions, which are the upstream releases.
 pipeline {
 
-    agent any
+    // The test suite starts some hundred client threads (paho) and hits the task ceiling of the
+    // built-in node ("unable to create native thread"). it-runner has its own limits and a single
+    // executor, so the fixed ports 1883 and 8883 of the tests cannot collide with another build.
+    agent { label 'it-runner' }
+    // jdk21 and M3 are resolved from the node's Tool Locations on it-runner
     tools {
         jdk 'jdk21'
         maven 'M3'
@@ -26,7 +30,7 @@ pipeline {
                 description: "Release instead of deploying a SNAPSHOT: builds the next free version <base>-iot.<n> (counted from the tags), deploys it and pushes the tag. Only on the iot branch.",
                 defaultValue: false)
         booleanParam(name: "INTEGRATION_TESTS",
-                description: "Also run the tests that start a Mosquitto broker via Testcontainers (MosquittoTest and all *IT). Needs Docker on the agent.",
+                description: "Also run the tests that start a Mosquitto broker via Testcontainers (MosquittoTest and all *IT). Needs Docker on the agent, which it-runner does not have yet.",
                 defaultValue: false)
         booleanParam(name: "CLEANUP",
                 description: "Cleanup Current Workspace.",
@@ -34,6 +38,10 @@ pipeline {
         string(name: "MVN_PARAMS", defaultValue: "", description: "Additional Maven Parameters for: mvn clean deploy")
     }
     environment {
+        // The shared settings file pins the local repository to /var/jenkins_home/.m2/repository,
+        // which does not exist on it-runner, and Maven aborts instead of falling back.
+        // Single-quoted so Groovy leaves $HOME to the shell.
+        MVN_REPO = '-Dmaven.repo.local=$HOME/.m2/repository'
         // Without Docker MosquittoTest fails instead of skipping, the *IT classes are not picked up by default.
         // An exclusion alone is no selection: surefire then treats every class as a test, module-info included.
         TEST_SELECTION = "${params.INTEGRATION_TESTS ? "-Dtest='*Test,*IT'" : "-Dtest='*Test,!MosquittoTest'"} -Dsurefire.failIfNoSpecifiedTests=false"
@@ -48,7 +56,7 @@ pipeline {
             when { expression { !params.RELEASE } }
             steps {
                 withMaven(maven: 'M3', mavenSettingsConfig: 'iot_maven') {
-                    sh "mvn ${params.MVN_PARAMS} -e -B clean deploy ${env.TEST_SELECTION}"
+                    sh "mvn ${env.MVN_REPO} ${params.MVN_PARAMS} -e -B clean deploy ${env.TEST_SELECTION}"
                 }
             }
         }
@@ -66,8 +74,8 @@ pipeline {
                 }
                 withMaven(maven: 'M3', mavenSettingsConfig: 'iot_maven') {
                     // the version is set in the workspace only, the branch keeps its -SNAPSHOT
-                    sh "mvn -B versions:set -DnewVersion=${env.RELEASE_VERSION} -DgenerateBackupPoms=false"
-                    sh "mvn -B clean deploy ${env.TEST_SELECTION}"
+                    sh "mvn ${env.MVN_REPO} -B versions:set -DnewVersion=${env.RELEASE_VERSION} -DgenerateBackupPoms=false"
+                    sh "mvn ${env.MVN_REPO} -B clean deploy ${env.TEST_SELECTION}"
                 }
                 withCredentials([gitUsernamePassword(credentialsId: 'iot-invent-bot', gitToolName: 'Default')]) {
                     sh """
