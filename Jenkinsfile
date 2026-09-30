@@ -34,8 +34,9 @@ pipeline {
         string(name: "MVN_PARAMS", defaultValue: "", description: "Additional Maven Parameters for: mvn clean deploy")
     }
     environment {
-        // Without Docker MosquittoTest fails instead of skipping, the *IT classes are not picked up by default
-        TEST_SELECTION = "${params.INTEGRATION_TESTS ? "-Dtest='*Test,*IT'" : "-Dtest='!MosquittoTest'"} -Dsurefire.failIfNoSpecifiedTests=false"
+        // Without Docker MosquittoTest fails instead of skipping, the *IT classes are not picked up by default.
+        // An exclusion alone is no selection: surefire then treats every class as a test, module-info included.
+        TEST_SELECTION = "${params.INTEGRATION_TESTS ? "-Dtest='*Test,*IT'" : "-Dtest='*Test,!MosquittoTest'"} -Dsurefire.failIfNoSpecifiedTests=false"
     }
 
     stages {
