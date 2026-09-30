@@ -24,7 +24,6 @@ import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttConnectionException;
 import io.vertx.mqtt.MqttServer;
-import io.vertx.mqtt.MqttServerOptions;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -102,7 +101,8 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
     server.endpointHandler(endpoint -> {
       endpoint.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
     });
-    server.listen(MqttServerOptions.DEFAULT_PORT).onComplete(context.asyncAssertSuccess(v -> asyncServer.complete()));
+    // a free port, the server would otherwise block the default port for the following tests
+    server.listen(0).onComplete(context.asyncAssertSuccess(v -> asyncServer.complete()));
     asyncServer.await();
 
     MqttClient client = MqttClient.create(vertx);
@@ -113,12 +113,13 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
     });
 
     client
-      .connect(MqttClientOptions.DEFAULT_PORT, MqttClientOptions.DEFAULT_HOST)
+      .connect(server.actualPort(), MqttClientOptions.DEFAULT_HOST)
       .onComplete(context.asyncAssertFailure(err -> {
         assertTrue(err instanceof MqttConnectionException);
         MqttConnectionException connEx = (MqttConnectionException) err;
         assertEquals(connEx.code(), MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
         assertFalse(client.isConnected());
+        vertx.close();
       }));
   }
 }
