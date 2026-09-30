@@ -24,7 +24,7 @@ import java.util.function.BooleanSupplier;
 import static org.junit.Assert.*;
 
 @RunWith(VertxUnitRunner.class)
-public class MqttClientQoSTest {
+public class MqttClientQoSTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -33,7 +33,7 @@ public class MqttClientQoSTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -64,7 +64,7 @@ public class MqttClientQoSTest {
       endpoint.accept();
     });
     startServer();
-    client = MqttClient.create(vertx, new MqttClientOptions().setAutoAck(false).setAckTimeout(10));
+    client = createClient(vertx, new MqttClientOptions().setAutoAck(false).setAckTimeout(10));
     client.connect(MqttServerOptions.DEFAULT_PORT, MqttServerOptions.DEFAULT_HOST).await();
     Integer id = client.publish("test", Buffer.buffer(), qos, false, false).await();
     try {
@@ -112,7 +112,7 @@ public class MqttClientQoSTest {
       endpoint.accept();
     });
     startServer();
-    client = MqttClient.create(vertx, new MqttClientOptions().setAutoAck(false).setAckTimeout(1));
+    client = createClient(vertx, new MqttClientOptions().setAutoAck(false).setAckTimeout(1));
     List<Integer> completionIds = Collections.synchronizedList(new ArrayList<>());
     List<Integer> expiredIds = Collections.synchronizedList(new ArrayList<>());
     client.publishCompletionHandler(completionIds::add);
@@ -146,7 +146,7 @@ public class MqttClientQoSTest {
       endpoint.accept();
     });
     startServer();
-    client = MqttClient.create(vertx, new MqttClientOptions().setAutoAck(false).setAckTimeout(1));
+    client = createClient(vertx, new MqttClientOptions().setAutoAck(false).setAckTimeout(1));
     List<Integer> expiredIds = Collections.synchronizedList(new ArrayList<>());
     List<Integer> unknownIds = Collections.synchronizedList(new ArrayList<>());
     client.publishCompletionExpirationHandler(expiredIds::add);
@@ -189,7 +189,7 @@ public class MqttClientQoSTest {
       endpoint.accept();
     });
     startServer();
-    client = MqttClient.create(vertx, new MqttClientOptions().setAutoAck(false).setAckTimeout(1));
+    client = createClient(vertx, new MqttClientOptions().setAutoAck(false).setAckTimeout(1));
     List<Integer> completionIds = Collections.synchronizedList(new ArrayList<>());
     List<Integer> expiredIds = Collections.synchronizedList(new ArrayList<>());
     client.publishCompletionHandler(completionIds::add);

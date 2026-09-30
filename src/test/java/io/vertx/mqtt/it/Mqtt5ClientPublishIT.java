@@ -48,7 +48,7 @@ public class Mqtt5ClientPublishIT extends Mqtt5ClientBaseIT {
   @Test
   public void publishQos0(TestContext ctx) {
     vertx = Vertx.vertx();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.connect(port, host)
       .onComplete(ctx.asyncAssertSuccess(ack ->
@@ -64,7 +64,7 @@ public class Mqtt5ClientPublishIT extends Mqtt5ClientBaseIT {
   public void publishQos1(TestContext ctx) {
     vertx = Vertx.vertx();
     Async published = ctx.async();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.publishCompletionHandler(id -> published.complete());
 
@@ -82,7 +82,7 @@ public class Mqtt5ClientPublishIT extends Mqtt5ClientBaseIT {
   public void publishQos2(TestContext ctx) {
     vertx = Vertx.vertx();
     Async published = ctx.async();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.publishCompletionHandler(id -> published.complete());
 
@@ -100,7 +100,7 @@ public class Mqtt5ClientPublishIT extends Mqtt5ClientBaseIT {
   public void publishWithUserProperties(TestContext ctx) {
     vertx = Vertx.vertx();
     Async published = ctx.async();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.publishCompletionHandler(id -> published.complete());
 
@@ -121,7 +121,7 @@ public class Mqtt5ClientPublishIT extends Mqtt5ClientBaseIT {
   @Test
   public void publishWithContentType(TestContext ctx) {
     vertx = Vertx.vertx();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.connect(port, host)
       .onComplete(ctx.asyncAssertSuccess(ack -> {

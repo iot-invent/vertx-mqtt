@@ -41,7 +41,7 @@ public class MqttClientIdIT extends MqttClientBaseIT {
   public void afterConnectClientIdGenerated(TestContext context) throws InterruptedException {
 
     MqttClientOptions options = new MqttClientOptions();
-    MqttClient client = MqttClient.create(Vertx.vertx(), options);
+    MqttClient client = createClient(Vertx.vertx(), options);
 
     assertThat(options.getClientId(), nullValue());
 
@@ -60,7 +60,7 @@ public class MqttClientIdIT extends MqttClientBaseIT {
 
     MqttClientOptions options = new MqttClientOptions();
     options.setClientId("myClient");
-    MqttClient client = MqttClient.create(Vertx.vertx(), options);
+    MqttClient client = createClient(Vertx.vertx(), options);
 
     client.connect(port, host).onComplete(context.asyncAssertSuccess(v -> {
 

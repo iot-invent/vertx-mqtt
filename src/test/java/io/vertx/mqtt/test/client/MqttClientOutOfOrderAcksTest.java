@@ -41,7 +41,7 @@ import java.util.Queue;
  * MQTT client testing on messages acknowledged out of order
  */
 @RunWith(VertxUnitRunner.class)
-public class MqttClientOutOfOrderAcksTest {
+public class MqttClientOutOfOrderAcksTest extends MqttClientTestBase {
   private static final Logger log = LoggerFactory.getLogger(MqttClientOutOfOrderAcksTest.class);
 
   private static final String MQTT_TOPIC = "/my_topic";
@@ -62,7 +62,7 @@ public class MqttClientOutOfOrderAcksTest {
 
   private void clientSendThreePublishMessages(MqttQoS mqttQoS, TestContext context) {
     Async async = context.async(3);
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
 
     Queue<Integer> expectOrder = new LinkedList<>();
     // order we expect to receive acknowledgment for published message
@@ -95,7 +95,7 @@ public class MqttClientOutOfOrderAcksTest {
 
   @Before
   public void before(TestContext context) {
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
     server.exceptionHandler(t -> context.fail());
     server.endpointHandler(MqttClientOutOfOrderAcksTest::serverLogic)
       .listen()

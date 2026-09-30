@@ -46,7 +46,7 @@ import java.util.Map;
  * </ul>
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientUnsubscribeTest {
+public class Mqtt5ClientUnsubscribeTest extends MqttClientTestBase {
 
   private static final String MQTT_TOPIC = "/mqtt5/unsub/test";
 
@@ -56,7 +56,7 @@ public class Mqtt5ClientUnsubscribeTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -87,7 +87,7 @@ public class Mqtt5ClientUnsubscribeTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.unsubscribeCompletionMessageHandler((MqttUnsubAckMessage ack) -> {
         ctx.assertEquals(1, ack.reasonCodes().size());
@@ -120,7 +120,7 @@ public class Mqtt5ClientUnsubscribeTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.unsubscribeCompletionMessageHandler((MqttUnsubAckMessage ack) -> {
         ctx.assertEquals(1, ack.reasonCodes().size());
@@ -156,7 +156,7 @@ public class Mqtt5ClientUnsubscribeTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(connAck -> {
@@ -190,7 +190,7 @@ public class Mqtt5ClientUnsubscribeTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.unsubscribeCompletionMessageHandler((MqttUnsubAckMessage ack) -> {
         MqttProperties.MqttProperty<?> prop = ack.properties().getProperty(MqttProperties.REASON_STRING);

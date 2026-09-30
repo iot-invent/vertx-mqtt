@@ -52,7 +52,7 @@ public class MqttClientPingIT extends MqttClientBaseIT {
     log.info("Manual ping ... " + PING_NUMBER + " times timeout " + KEEPALIVE_TIMEOUT);
 
     count = 0;
-    MqttClient client = MqttClient.create(vertx, options);
+    MqttClient client = createClient(vertx, options);
     client.connect(port, host).onComplete(c -> {
       assertTrue(c.succeeded());
       client.pingResponseHandler(v ->{
@@ -87,7 +87,7 @@ public class MqttClientPingIT extends MqttClientBaseIT {
     log.info("Auto ping ... " + PING_NUMBER + " times timeout " + KEEPALIVE_TIMEOUT);
 
     count = 0;
-    MqttClient client = MqttClient.create(Vertx.vertx(), options);
+    MqttClient client = createClient(Vertx.vertx(), options);
     client.connect(port, host).onComplete(c -> {
       assertTrue(c.succeeded());
       client.pingResponseHandler(v -> {

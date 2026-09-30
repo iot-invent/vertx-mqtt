@@ -37,7 +37,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
 
   @Test
   public void connectDisconnect(TestContext context) throws InterruptedException {
-    MqttClient client = MqttClient.create(Vertx.vertx());
+    MqttClient client = createClient(Vertx.vertx());
 
     client
       .connect(port, host)
@@ -51,7 +51,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
   public void connectDisconnectWithIdleOption(TestContext context) {
     MqttClientOptions options = new MqttClientOptions();
     options.setKeepAliveInterval(100);
-    MqttClient client = MqttClient.create(Vertx.vertx(),options);
+    MqttClient client = createClient(Vertx.vertx(),options);
 
     client
       .connect(port, host)
@@ -64,7 +64,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
   @Test
   public void closeHandler(TestContext context) throws InterruptedException {
     Async async = context.async();
-    MqttClient client = MqttClient.create(Vertx.vertx(),
+    MqttClient client = createClient(Vertx.vertx(),
       new MqttClientOptions()
         .setKeepAliveInterval(5)
         .setAutoKeepAlive(false)
@@ -79,7 +79,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
 
   @Test
   public void tcpConnectionFails(TestContext context) {
-    MqttClient client = MqttClient.create(Vertx.vertx());
+    MqttClient client = createClient(Vertx.vertx());
 
     client.closeHandler(v -> {
       // when TCP connection fails, this handler should not be called, connection not established
@@ -97,7 +97,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
     Async asyncServer = context.async();
     Vertx vertx = Vertx.vertx();
 
-    MqttServer server = MqttServer.create(vertx);
+    MqttServer server = createServer(vertx);
     server.endpointHandler(endpoint -> {
       endpoint.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
     });
@@ -105,7 +105,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
     server.listen(0).onComplete(context.asyncAssertSuccess(v -> asyncServer.complete()));
     asyncServer.await();
 
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
     client.closeHandler(v -> {
       // when server replies with "negative" CONNACK, this handler should not be called
       // the failure is just part of the connectHandler

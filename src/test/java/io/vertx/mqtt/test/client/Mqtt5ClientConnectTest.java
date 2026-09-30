@@ -40,7 +40,7 @@ import io.vertx.mqtt.MqttServer;
  * that each property is correctly encoded by MqttClientImpl.
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientConnectTest {
+public class Mqtt5ClientConnectTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -48,7 +48,7 @@ public class Mqtt5ClientConnectTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -77,7 +77,7 @@ public class Mqtt5ClientConnectTest {
       MqttClientOptions options = new MqttClientOptions();
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(v -> connected.complete()));
     });
@@ -107,7 +107,7 @@ public class Mqtt5ClientConnectTest {
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
       options.setSessionExpireInterval(expected);
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost");
     });
 
@@ -135,7 +135,7 @@ public class Mqtt5ClientConnectTest {
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
       options.setSessionExpireInterval(expected);
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost");
     });
 
@@ -164,7 +164,7 @@ public class Mqtt5ClientConnectTest {
       options.setReceiveMaximum(expected);
       options.setTopicAliasMaximum(null); // suppress default so we only see RECEIVE_MAXIMUM
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost");
     });
 
@@ -192,7 +192,7 @@ public class Mqtt5ClientConnectTest {
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
       options.setMaximumPacketSize(expected);
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost");
     });
 
@@ -220,7 +220,7 @@ public class Mqtt5ClientConnectTest {
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
       options.setTopicAliasMaximum(expected);
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost");
     });
 
@@ -256,7 +256,7 @@ public class Mqtt5ClientConnectTest {
       options.setMaximumPacketSize(32768l);
       options.setTopicAliasMaximum(3);
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost");
     });
 
@@ -284,7 +284,7 @@ public class Mqtt5ClientConnectTest {
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
       options.setAuthenticationMethod(expected);
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost");
     });
 
@@ -318,7 +318,7 @@ public class Mqtt5ClientConnectTest {
       options.setAuthenticationMethod(expectedMethod);
       options.setAuthenticationData(Buffer.buffer(expectedData));
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost");
     });
 
@@ -358,7 +358,7 @@ public class Mqtt5ClientConnectTest {
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
       options.setRequestResponseInformation(true);
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
         .connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           ctx.assertEquals(expected, ack.responseInformation());
@@ -388,7 +388,7 @@ public class Mqtt5ClientConnectTest {
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
       // requestResponseInformation is not set (defaults to null / false)
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
         .connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           ctx.assertNull(ack.responseInformation());
@@ -425,7 +425,7 @@ public class Mqtt5ClientConnectTest {
       MqttClientOptions options = new MqttClientOptions();
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
 
-      MqttClient.create(vertx, options)
+      createClient(vertx, options)
           .connect(server.actualPort(), "localhost", null, Map.of("k1", "v1"));
     });
 

@@ -42,7 +42,7 @@ import java.util.List;
  * and arrive at the server endpoint.
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientWillTest {
+public class Mqtt5ClientWillTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -50,7 +50,7 @@ public class Mqtt5ClientWillTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -151,7 +151,7 @@ public class Mqtt5ClientWillTest {
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
       options.setWillOptions(willOpts);
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess());
     });

@@ -58,7 +58,7 @@ public class MqttClientPublishIT extends MqttClientBaseIT {
     this.messageId = 0;
 
     Async async = context.async();
-    MqttClient client = MqttClient.create(Vertx.vertx());
+    MqttClient client = createClient(Vertx.vertx());
 
     client.publishCompletionHandler(pubid -> {
       assertTrue(pubid == messageId);

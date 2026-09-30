@@ -43,7 +43,7 @@ import java.util.List;
  * {@link MqttClient#subscribe(List, MqttProperties)} API.
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientSubscriptionOptionsTest {
+public class Mqtt5ClientSubscriptionOptionsTest extends MqttClientTestBase {
 
   private static final String TOPIC = "/mqtt5/sub/options";
 
@@ -53,7 +53,7 @@ public class Mqtt5ClientSubscriptionOptionsTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -84,7 +84,7 @@ public class Mqtt5ClientSubscriptionOptionsTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           MqttSubscriptionOption option = new MqttSubscriptionOption(
@@ -117,7 +117,7 @@ public class Mqtt5ClientSubscriptionOptionsTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           MqttSubscriptionOption option = new MqttSubscriptionOption(
@@ -150,7 +150,7 @@ public class Mqtt5ClientSubscriptionOptionsTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           MqttSubscriptionOption option = new MqttSubscriptionOption(
@@ -186,7 +186,7 @@ public class Mqtt5ClientSubscriptionOptionsTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           MqttSubscriptionOption option = new MqttSubscriptionOption(

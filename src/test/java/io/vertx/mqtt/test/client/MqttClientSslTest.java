@@ -37,7 +37,7 @@ import org.junit.runner.RunWith;
  * MQTT client testing about using SSL/TLS
  */
 @RunWith(VertxUnitRunner.class)
-public class MqttClientSslTest {
+public class MqttClientSslTest extends MqttClientTestBase {
 
   private static final Logger log = LoggerFactory.getLogger(MqttClientSslTest.class);
   private static final int MQTT_SERVER_TLS_PORT = 8883;
@@ -54,7 +54,7 @@ public class MqttClientSslTest {
       .setHostnameVerificationAlgorithm("")
       .setTrustAll(true);
 
-    client = MqttClient.create(vertx, clientOptions);
+    client = createClient(vertx, clientOptions);
 
     client.connect(MQTT_SERVER_TLS_PORT, MQTT_SERVER_HOST)
       .compose(msg -> client.disconnect())
@@ -71,7 +71,7 @@ public class MqttClientSslTest {
       .setHostnameVerificationAlgorithm("")
       .setTrustOptions(jksOptions);
 
-    client = MqttClient.create(vertx, clientOptions);
+    client = createClient(vertx, clientOptions);
     client.exceptionHandler(t -> context.assertTrue(false));
 
     client.connect(MQTT_SERVER_TLS_PORT, MQTT_SERVER_HOST)
@@ -91,7 +91,7 @@ public class MqttClientSslTest {
       .setKeyCertOptions(pemKeyCertOptions)
       .setSsl(true);
 
-    server = MqttServer.create(vertx, serverOptions);
+    server = createServer(vertx, serverOptions);
     server.endpointHandler(e -> {
       log.info("Client connected");
       e.disconnectHandler(d -> log.info("Client disconnected"));

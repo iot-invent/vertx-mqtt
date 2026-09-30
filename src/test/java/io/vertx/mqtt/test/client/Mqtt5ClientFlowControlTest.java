@@ -44,7 +44,7 @@ import java.util.List;
  * - Maximum QoS: client must reject publishes whose QoS exceeds server's Maximum QoS.
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientFlowControlTest {
+public class Mqtt5ClientFlowControlTest extends MqttClientTestBase {
 
   private static final String TOPIC = "/mqtt5/flow/test";
 
@@ -54,7 +54,7 @@ public class Mqtt5ClientFlowControlTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -87,7 +87,7 @@ public class Mqtt5ClientFlowControlTest {
       opts.setAutoAck(false);
       // raise local inflight limit so it doesn't interfere
       opts.setMaxInflightQueue(100);
-      MqttClient client = MqttClient.create(vertx, opts);
+      MqttClient client = createClient(vertx, opts);
 
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -128,7 +128,7 @@ public class Mqtt5ClientFlowControlTest {
       MqttClientOptions opts = v5Options();
       opts.setAutoAck(false);
       opts.setMaxInflightQueue(100);
-      MqttClient client = MqttClient.create(vertx, opts);
+      MqttClient client = createClient(vertx, opts);
 
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -167,7 +167,7 @@ public class Mqtt5ClientFlowControlTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -198,7 +198,7 @@ public class Mqtt5ClientFlowControlTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(ack -> {

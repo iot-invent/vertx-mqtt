@@ -45,7 +45,7 @@ public class Mqtt5ClientConnectIT extends Mqtt5ClientBaseIT {
   @Test
   public void connectWithMqtt5Version(TestContext ctx) {
     vertx = Vertx.vertx();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.connect(port, host)
       .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -64,7 +64,7 @@ public class Mqtt5ClientConnectIT extends Mqtt5ClientBaseIT {
     MqttClientOptions opts = v5Options();
     opts.setSessionExpireInterval(60L);
 
-    MqttClient client = MqttClient.create(vertx, opts);
+    MqttClient client = createClient(vertx, opts);
     client.connect(port, host)
       .onComplete(ctx.asyncAssertSuccess(ack -> {
         ctx.assertEquals(MqttConnectReturnCode.CONNECTION_ACCEPTED, ack.code());
@@ -79,7 +79,7 @@ public class Mqtt5ClientConnectIT extends Mqtt5ClientBaseIT {
   @Test
   public void connAckContainsServerProperties(TestContext ctx) {
     vertx = Vertx.vertx();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.connect(port, host)
       .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -95,7 +95,7 @@ public class Mqtt5ClientConnectIT extends Mqtt5ClientBaseIT {
   @Test
   public void connectAndDisconnectWithReasonCode(TestContext ctx) {
     vertx = Vertx.vertx();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.connect(port, host)
       .onComplete(ctx.asyncAssertSuccess(ack -> {

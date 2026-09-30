@@ -35,7 +35,7 @@ import org.junit.runner.RunWith;
  * Tests for the MQTT v5 DISCONNECT packet sent by the client with reason codes.
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientDisconnectTest {
+public class Mqtt5ClientDisconnectTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -43,7 +43,7 @@ public class Mqtt5ClientDisconnectTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -69,7 +69,7 @@ public class Mqtt5ClientDisconnectTest {
       MqttClientOptions options = new MqttClientOptions();
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(ack -> client.disconnect(MqttDisconnectReasonCode.NORMAL, MqttProperties.NO_PROPERTIES)
               .onComplete(ctx.asyncAssertSuccess())));
@@ -95,7 +95,7 @@ public class Mqtt5ClientDisconnectTest {
       MqttClientOptions options = new MqttClientOptions();
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(ack -> client.disconnect(MqttDisconnectReasonCode.SESSION_TAKEN_OVER, MqttProperties.NO_PROPERTIES)
               .onComplete(ctx.asyncAssertSuccess())));
@@ -117,7 +117,7 @@ public class Mqtt5ClientDisconnectTest {
       MqttClientOptions options = new MqttClientOptions();
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(ack1 -> client.disconnect(MqttDisconnectReasonCode.NORMAL, MqttProperties.NO_PROPERTIES)
               .onComplete(ctx.asyncAssertSuccess(v -> {
@@ -152,7 +152,7 @@ public class Mqtt5ClientDisconnectTest {
       MqttClientOptions options = new MqttClientOptions();
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           client.disconnectMessageHandler(msg -> {
@@ -183,7 +183,7 @@ public class Mqtt5ClientDisconnectTest {
       MqttClientOptions options = new MqttClientOptions();
       options.setVersion(MqttVersion.MQTT_5.protocolLevel());
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           client.disconnectMessageHandler(msg -> {

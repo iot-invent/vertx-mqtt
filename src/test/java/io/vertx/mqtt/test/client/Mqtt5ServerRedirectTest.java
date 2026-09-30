@@ -45,7 +45,7 @@ import org.junit.runner.RunWith;
  *   4. SERVER_REFERENCE with a comma-separated list → client picks one at random.
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ServerRedirectTest {
+public class Mqtt5ServerRedirectTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server1;
@@ -54,8 +54,8 @@ public class Mqtt5ServerRedirectTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server1 = MqttServer.create(vertx);
-    server2 = MqttServer.create(vertx);
+    server1 = createServer(vertx);
+    server2 = createServer(vertx);
   }
 
   @After
@@ -89,7 +89,7 @@ public class Mqtt5ServerRedirectTest {
       });
 
       server1.listen(0).onComplete(ctx.asyncAssertSuccess(v1 -> {
-        MqttClient client = MqttClient.create(vertx, v5Options(true));
+        MqttClient client = createClient(vertx, v5Options(true));
         client.connect(server1.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess());
       }));
@@ -121,7 +121,7 @@ public class Mqtt5ServerRedirectTest {
       });
 
       server1.listen(0).onComplete(ctx.asyncAssertSuccess(v1 -> {
-        MqttClient client = MqttClient.create(vertx, v5Options(true));
+        MqttClient client = createClient(vertx, v5Options(true));
         client.connect(server1.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess());
       }));
@@ -152,7 +152,7 @@ public class Mqtt5ServerRedirectTest {
       });
 
       server1.listen(0).onComplete(ctx.asyncAssertSuccess(v1 -> {
-        MqttClient client = MqttClient.create(vertx, v5Options(false)); // redirect disabled
+        MqttClient client = createClient(vertx, v5Options(false)); // redirect disabled
         client.connect(server1.actualPort(), "localhost")
           .onComplete(ar -> {
             ctx.assertTrue(ar.failed());
@@ -171,7 +171,7 @@ public class Mqtt5ServerRedirectTest {
   @Test
   public void connackRedirectFromList(TestContext ctx) {
     Async done = ctx.async();
-    MqttServer server3 = MqttServer.create(vertx);
+    MqttServer server3 = createServer(vertx);
 
     server2.endpointHandler(ep -> { ep.accept(false); done.complete(); });
     server3.endpointHandler(ep -> { ep.accept(false); done.complete(); });
@@ -188,7 +188,7 @@ public class Mqtt5ServerRedirectTest {
         });
 
         server1.listen(0).onComplete(ctx.asyncAssertSuccess(v1 -> {
-          MqttClient client = MqttClient.create(vertx, v5Options(true));
+          MqttClient client = createClient(vertx, v5Options(true));
           client.connect(server1.actualPort(), "localhost")
             .onComplete(ctx.asyncAssertSuccess());
         }));

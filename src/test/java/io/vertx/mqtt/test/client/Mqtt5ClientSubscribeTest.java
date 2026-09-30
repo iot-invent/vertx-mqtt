@@ -46,7 +46,7 @@ import java.util.Map;
  * </ul>
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientSubscribeTest {
+public class Mqtt5ClientSubscribeTest extends MqttClientTestBase {
 
   private static final String MQTT_TOPIC = "/mqtt5/test";
   private static final int SUBSCRIPTION_IDENTIFIER = 42;
@@ -57,7 +57,7 @@ public class Mqtt5ClientSubscribeTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -93,7 +93,7 @@ public class Mqtt5ClientSubscribeTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.connect(server.actualPort(), "localhost")
           .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -123,7 +123,7 @@ public class Mqtt5ClientSubscribeTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.subscribeCompletionHandler((MqttSubAckMessage ack) -> {
         ctx.assertEquals(1, ack.grantedQoSLevels().size());
@@ -155,7 +155,7 @@ public class Mqtt5ClientSubscribeTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.subscribeCompletionHandler((MqttSubAckMessage ack) -> {
         ctx.assertEquals(1, ack.grantedQoSLevels().size());
@@ -190,7 +190,7 @@ public class Mqtt5ClientSubscribeTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.subscribeCompletionHandler((MqttSubAckMessage ack) -> {
         MqttProperties.MqttProperty<?> prop = ack.properties().getProperty(MqttProperties.REASON_STRING);
@@ -224,7 +224,7 @@ public class Mqtt5ClientSubscribeTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           MqttProperties props = new MqttProperties();
@@ -256,7 +256,7 @@ public class Mqtt5ClientSubscribeTest {
     startServer(ctx, () -> {
       // Plain MQTT 4 client
       MqttClientOptions opts = new MqttClientOptions();
-      MqttClient client = MqttClient.create(vertx, opts);
+      MqttClient client = createClient(vertx, opts);
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           MqttProperties props = new MqttProperties();
@@ -292,7 +292,7 @@ public class Mqtt5ClientSubscribeTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           ctx.assertFalse(ack.wildcardSubscriptionAvailable(),
@@ -328,7 +328,7 @@ public class Mqtt5ClientSubscribeTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           ctx.assertFalse(ack.sharedSubscriptionAvailable(),
@@ -363,7 +363,7 @@ public class Mqtt5ClientSubscribeTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           ctx.assertNull(ack.wildcardSubscriptionAvailable(),

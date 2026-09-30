@@ -48,7 +48,7 @@ import java.util.Map;
  * APIs on both the server (MqttEndpoint) and client (MqttClient).
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientPublishTest {
+public class Mqtt5ClientPublishTest extends MqttClientTestBase {
 
   private static final String MQTT_TOPIC = "/mqtt5/pub/test";
 
@@ -58,7 +58,7 @@ public class Mqtt5ClientPublishTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -88,7 +88,7 @@ public class Mqtt5ClientPublishTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.publishCompletionHandler(id -> published.complete());
 
@@ -118,7 +118,7 @@ public class Mqtt5ClientPublishTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       // The publishCompletionHandler fires for QoS 1 on PUBACK receipt regardless of code
       client.publishCompletionHandler(id -> published.complete());
@@ -162,7 +162,7 @@ public class Mqtt5ClientPublishTest {
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
       // autoAck=true: client auto-sends PUBREL when it receives PUBREC
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       // publishCompletionHandler fires on PUBCOMP receipt
       client.publishCompletionHandler(id -> published.complete());
@@ -200,7 +200,7 @@ public class Mqtt5ClientPublishTest {
 
     startServer(ctx, () -> {
       MqttClientOptions options = v5Options();
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack ->
@@ -236,7 +236,7 @@ public class Mqtt5ClientPublishTest {
       MqttClientOptions options = v5Options();
       options.setAutoAck(false); // we drive PUBREL manually
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       // On PUBREC (which arrives as PUBCOMP-phase in QoS2), send PUBREL manually with reason code
       // When autoAck=false, publishHandler is called when the PUBLISH message is fully delivered
@@ -286,7 +286,7 @@ public class Mqtt5ClientPublishTest {
       MqttClientOptions options = v5Options();
       options.setAutoAck(false); // we drive PUBACK ourselves
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       // On incoming PUBLISH QoS1 → send PUBACK with SUCCESS reason code
       client.publishHandler(msg -> {
@@ -328,7 +328,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -360,7 +360,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -391,7 +391,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -428,7 +428,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -483,7 +483,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.publishHandler(msg -> {
         // Verify the echoed correlation data matches what we sent
@@ -528,7 +528,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
@@ -563,7 +563,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
 
       client.publishHandler(msg -> {
         MqttProperties.MqttProperty<?> prop = msg.properties().getProperty(MqttProperties.CONTENT_TYPE);
@@ -598,7 +598,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           Buffer bigPayload = Buffer.buffer(new byte[100]);
@@ -635,7 +635,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.publishAckMessageHandler(ack -> {
         ctx.assertEquals(MqttPubAckReasonCode.NOT_AUTHORIZED, ack.code());
         done.complete();
@@ -667,7 +667,7 @@ public class Mqtt5ClientPublishTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.publishCompMessageHandler(comp -> {
         ctx.assertEquals(MqttPubCompReasonCode.PACKET_IDENTIFIER_NOT_FOUND, comp.code());
         done.complete();

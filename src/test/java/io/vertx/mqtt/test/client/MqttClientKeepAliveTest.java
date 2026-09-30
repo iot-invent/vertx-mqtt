@@ -42,7 +42,7 @@ import static org.junit.Assert.assertEquals;
  * MQTT client keep alive tests using a Vert.x MQTT server to accommodate testing.
  */
 @RunWith(VertxUnitRunner.class)
-public class MqttClientKeepAliveTest {
+public class MqttClientKeepAliveTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -54,7 +54,7 @@ public class MqttClientKeepAliveTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -78,7 +78,7 @@ public class MqttClientKeepAliveTest {
     MqttClientOptions options = new MqttClientOptions();
     options.setAutoKeepAlive(true);
     options.setKeepAliveInterval(1);
-    MqttClient client = MqttClient.create(vertx, options);
+    MqttClient client = createClient(vertx, options);
     client.connect(MqttClientOptions.DEFAULT_PORT, MqttClientOptions.DEFAULT_HOST).onComplete(ctx.asyncAssertSuccess(ack -> {
       Async async = ctx.async();
       AtomicInteger pongs = new AtomicInteger();
@@ -106,7 +106,7 @@ public class MqttClientKeepAliveTest {
     startServer(ctx);
     MqttClientOptions options = new MqttClientOptions();
     options.setKeepAliveInterval(1);
-    MqttClient client = MqttClient.create(vertx, options);
+    MqttClient client = createClient(vertx, options);
     client.connect(MqttClientOptions.DEFAULT_PORT, MqttClientOptions.DEFAULT_HOST).onComplete(ctx.asyncAssertSuccess(ack -> {
       Async async = ctx.async();
       client.closeHandler(v -> {
@@ -128,7 +128,7 @@ public class MqttClientKeepAliveTest {
     MqttClientOptions options = new MqttClientOptions();
     options.setKeepAliveInterval(2);
     options.setAutoKeepAlive(false);
-    MqttClient client = MqttClient.create(vertx, options);
+    MqttClient client = createClient(vertx, options);
     client.connect(MqttClientOptions.DEFAULT_PORT, MqttClientOptions.DEFAULT_HOST).onComplete(ctx.asyncAssertSuccess(ack -> {
       Async async = ctx.async();
       AtomicInteger pongs = new AtomicInteger();
@@ -163,7 +163,7 @@ public class MqttClientKeepAliveTest {
     MqttClientOptions options = new MqttClientOptions();
     options.setKeepAliveInterval(2);
     options.setAutoKeepAlive(true);
-    MqttClient client = MqttClient.create(vertx, options);
+    MqttClient client = createClient(vertx, options);
     client.connect(MqttClientOptions.DEFAULT_PORT, MqttClientOptions.DEFAULT_HOST).onComplete(ctx.asyncAssertSuccess(ack -> {
       Async async = ctx.async();
       long timerID = vertx.setPeriodic(500, id -> {
@@ -210,7 +210,7 @@ public class MqttClientKeepAliveTest {
     MqttClientOptions options = new MqttClientOptions();
     options.setKeepAliveInterval(1);
     options.setAutoKeepAlive(true);
-    MqttClient client = MqttClient.create(vertx, options);
+    MqttClient client = createClient(vertx, options);
     client.connect(MqttClientOptions.DEFAULT_PORT, MqttClientOptions.DEFAULT_HOST).onComplete(ctx.asyncAssertSuccess(ack -> {
       Async async = ctx.async();
       AtomicInteger pongs = new AtomicInteger();

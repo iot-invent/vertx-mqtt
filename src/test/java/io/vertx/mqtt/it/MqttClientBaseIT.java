@@ -16,10 +16,18 @@
 
 package io.vertx.mqtt.it;
 
+import io.vertx.core.Vertx;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.mqtt.MqttClient;
+import io.vertx.mqtt.MqttClientOptions;
+import io.vertx.mqtt.MqttServer;
+import io.vertx.mqtt.MqttServerOptions;
 import org.junit.Before;
 import org.junit.runner.RunWith;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.wait.strategy.WaitAllStrategy;
 import org.testcontainers.utility.DockerImageName;
 
 /**
@@ -28,8 +36,7 @@ import org.testcontainers.utility.DockerImageName;
 @RunWith(VertxUnitRunner.class)
 public abstract class MqttClientBaseIT {
 
-  public GenericContainer mosquitto = new GenericContainer(DockerImageName.parse("ansi/mosquitto"))
-    .withExposedPorts(1883);
+  public GenericContainer mosquitto = newBroker();
 
   protected int port;
   protected String host;
@@ -37,7 +44,41 @@ public abstract class MqttClientBaseIT {
   @Before
   public void setUp() {
     mosquitto.start();
-    port = mosquitto.getMappedPort(1883);
+    port = mosquitto.getMappedPort(useWebSocket() ? 9001 : 1883);
     host = mosquitto.getHost();
+  }
+
+  private GenericContainer newBroker() {
+    if (useWebSocket()) {
+      // the ansi/mosquitto image is built without WebSocket support
+      return new GenericContainer<>(DockerImageName.parse("eclipse-mosquitto:2.0.12"))
+        .withExposedPorts(1883, 9001)
+        .withClasspathResourceMapping("it/mosquitto.conf", "/mosquitto/config/mosquitto.conf", BindMode.READ_ONLY)
+        // the log line alone does not mean the mapped ports already accept connections
+        .waitingFor(new WaitAllStrategy()
+          .withStrategy(Wait.forLogMessage(".*mosquitto .* running.*", 1))
+          .withStrategy(Wait.forListeningPort()));
+    }
+    return new GenericContainer(DockerImageName.parse("ansi/mosquitto"))
+      .withExposedPorts(1883);
+  }
+
+  /**
+   * @return {@code true} when the client connects to the broker using MQTT over WebSocket instead of plain TCP
+   */
+  protected boolean useWebSocket() {
+    return false;
+  }
+
+  protected MqttServer createServer(Vertx vertx) {
+    return MqttServer.create(vertx, new MqttServerOptions().setUseWebSocket(useWebSocket()));
+  }
+
+  protected MqttClient createClient(Vertx vertx) {
+    return createClient(vertx, new MqttClientOptions());
+  }
+
+  protected MqttClient createClient(Vertx vertx, MqttClientOptions options) {
+    return MqttClient.create(vertx, options.setUseWebSocket(useWebSocket()));
   }
 }

@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Client connect tests.
  */
 @RunWith(VertxUnitRunner.class)
-public class MqttConnectTest {
+public class MqttConnectTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -49,7 +49,7 @@ public class MqttConnectTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
     proxyServer = vertx.createNetServer();
   }
 
@@ -71,7 +71,7 @@ public class MqttConnectTest {
     Async serverLatch = ctx.async();
     server.listen(MqttClientOptions.DEFAULT_PORT).onComplete(ctx.asyncAssertSuccess(v -> serverLatch.complete()));
     serverLatch.awaitSuccess(10000);
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
     Async msglatch = ctx.async();
     client.connect(MqttClientOptions.DEFAULT_PORT, "localhost").onComplete(ctx.asyncAssertSuccess(ack -> {
       client.publishHandler(msg -> {
@@ -92,7 +92,7 @@ public class MqttConnectTest {
     server.listen(0).onComplete(ctx.asyncAssertSuccess(v -> serverLatch.complete()));
     serverLatch.awaitSuccess(10000);
     int port = server.actualPort();
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
     NetClient proxyClient = vertx.createNetClient();
     proxyServer.connectHandler(so1 -> {
       so1.pause();
@@ -139,7 +139,7 @@ public class MqttConnectTest {
     Async serverLatch = ctx.async();
     server.listen(MqttClientOptions.DEFAULT_PORT).onComplete(ctx.asyncAssertSuccess(v -> serverLatch.complete()));
     serverLatch.awaitSuccess(10000);
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
     client.connect(MqttClientOptions.DEFAULT_PORT, "localhost").onComplete(ctx.asyncAssertSuccess(ack1 -> {
       client.disconnect().onComplete(ctx.asyncAssertSuccess(v -> {
         ctx.assertFalse(client.isConnected());
@@ -152,7 +152,7 @@ public class MqttConnectTest {
 
   @Test
   public void disconnectBeforeConnAck(TestContext ctx) {
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
     Async async = ctx.async();
     server.endpointHandler(endpoint -> client.disconnect().onComplete(ctx.asyncAssertSuccess(v -> async.complete())));
     Async serverLatch = ctx.async();
@@ -164,7 +164,7 @@ public class MqttConnectTest {
 
   @Test
   public void disconnectWhenConnecting(TestContext ctx) {
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
     AtomicBoolean accept = new AtomicBoolean();
     server.endpointHandler(endpoint -> {
       if (accept.get()) {
@@ -185,7 +185,7 @@ public class MqttConnectTest {
 
   @Test
   public void rejectThenAccept(TestContext ctx) {
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
     AtomicBoolean rejectedOnce = new AtomicBoolean();
     server.endpointHandler(endpoint -> {
       if (rejectedOnce.getAndSet(true)) {
@@ -206,7 +206,7 @@ public class MqttConnectTest {
   @Test
   public void mqttClientReconnectAfterFailure(TestContext ctx) throws Exception {
     MqttClientOptions options = new MqttClientOptions();
-    MqttClient mqttClient = MqttClient.create(Vertx.vertx(), options);
+    MqttClient mqttClient = createClient(Vertx.vertx(), options);
     Async async = ctx.async();
     mqttClient.connect(1883, "localhost").onComplete(ctx.asyncAssertFailure(err -> {
       async.complete();

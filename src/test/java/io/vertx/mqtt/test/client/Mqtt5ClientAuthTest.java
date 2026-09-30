@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *   4. authenticationExchange() on a not-connected client returns a failed Future
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientAuthTest {
+public class Mqtt5ClientAuthTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -55,7 +55,7 @@ public class Mqtt5ClientAuthTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -112,7 +112,7 @@ public class Mqtt5ClientAuthTest {
       options.setAuthenticationMethod(authMethod);
       options.setAuthenticationData(clientInitialData);
 
-      MqttClient client = MqttClient.create(vertx, options);
+      MqttClient client = createClient(vertx, options);
 
       // Handle incoming AUTH challenge from server
       client.authenticationExchangeHandler(authMsg -> {
@@ -168,7 +168,7 @@ public class Mqtt5ClientAuthTest {
     AtomicReference<MqttAuthenticationExchangeMessage> received = new AtomicReference<>();
 
     server.listen(0).onComplete(ctx.asyncAssertSuccess(s -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.authenticationExchangeHandler(msg -> {
         received.set(msg);
         ctx.assertEquals(MqttAuthenticateReasonCode.CONTINUE_AUTHENTICATION, msg.reasonCode());
@@ -215,7 +215,7 @@ public class Mqtt5ClientAuthTest {
     });
 
     server.listen(0).onComplete(ctx.asyncAssertSuccess(s -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.authenticationExchangeHandler(msg -> {
         MqttProperties resp = new MqttProperties();
         resp.add(new MqttProperties.StringProperty(
@@ -243,7 +243,7 @@ public class Mqtt5ClientAuthTest {
     Async done = ctx.async();
 
     MqttClientOptions v3 = new MqttClientOptions(); // default = MQTT 3.1.1
-    MqttClient client = MqttClient.create(vertx, v3);
+    MqttClient client = createClient(vertx, v3);
 
     server.endpointHandler(ep -> ep.accept(false));
     server.listen(0).onComplete(ctx.asyncAssertSuccess(s -> {
@@ -272,7 +272,7 @@ public class Mqtt5ClientAuthTest {
 
     server.endpointHandler(ep -> ep.accept(false));
     server.listen(0).onComplete(ctx.asyncAssertSuccess(s -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       // Force the client to allocate a context by connecting and immediately disconnecting.
       client.connect(server.actualPort(), "localhost").onComplete(ctx.asyncAssertSuccess(connAck -> {
         client.disconnect().onComplete(ctx.asyncAssertSuccess(v -> {

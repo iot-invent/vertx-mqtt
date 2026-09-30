@@ -63,7 +63,7 @@ public class MqttClientUnsubscribeIT extends MqttClientBaseIT {
     this.messageId = 0;
 
     Async async = context.async();
-    MqttClient client = MqttClient.create(Vertx.vertx());
+    MqttClient client = createClient(Vertx.vertx());
 
     client.unsubscribeCompletionHandler(unsubackid -> {
       assertTrue(unsubackid == messageId);

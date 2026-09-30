@@ -54,7 +54,7 @@ public class Mqtt5ClientSubscribeIT extends Mqtt5ClientBaseIT {
   public void subscribeQos0(TestContext ctx) {
     vertx = Vertx.vertx();
     Async subscribed = ctx.async();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.subscribeCompletionHandler((MqttSubAckMessage ack) -> {
       ctx.assertFalse(ack.grantedQoSLevels().isEmpty());
@@ -75,7 +75,7 @@ public class Mqtt5ClientSubscribeIT extends Mqtt5ClientBaseIT {
   public void subscribeQos1(TestContext ctx) {
     vertx = Vertx.vertx();
     Async subscribed = ctx.async();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.subscribeCompletionHandler((MqttSubAckMessage ack) -> {
       ctx.assertFalse(ack.grantedQoSLevels().isEmpty());
@@ -100,8 +100,8 @@ public class Mqtt5ClientSubscribeIT extends Mqtt5ClientBaseIT {
     Async received = ctx.async();
     String payload = "hello-mqtt5";
 
-    MqttClient subscriber = MqttClient.create(vertx, v5Options());
-    MqttClient publisher  = MqttClient.create(vertx, v5Options());
+    MqttClient subscriber = createClient(vertx, v5Options());
+    MqttClient publisher  = createClient(vertx, v5Options());
 
     subscriber.publishHandler(msg -> {
       ctx.assertEquals(payload, msg.payload().toString());
@@ -128,7 +128,7 @@ public class Mqtt5ClientSubscribeIT extends Mqtt5ClientBaseIT {
   public void subscribeWithSubscriptionOptions(TestContext ctx) {
     vertx = Vertx.vertx();
     Async subscribed = ctx.async();
-    MqttClient client = MqttClient.create(vertx, v5Options());
+    MqttClient client = createClient(vertx, v5Options());
 
     client.subscribeCompletionHandler((MqttSubAckMessage ack) -> {
       ctx.assertFalse(ack.grantedQoSLevels().isEmpty());

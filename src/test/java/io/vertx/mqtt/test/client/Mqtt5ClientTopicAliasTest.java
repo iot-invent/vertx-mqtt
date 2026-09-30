@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * automatically assign and reuse aliases when publishing.
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5ClientTopicAliasTest {
+public class Mqtt5ClientTopicAliasTest extends MqttClientTestBase {
 
   private static final String TOPIC = "/mqtt5/alias/test";
 
@@ -49,7 +49,7 @@ public class Mqtt5ClientTopicAliasTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -84,7 +84,7 @@ public class Mqtt5ClientTopicAliasTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack ->
           client.publish(TOPIC, Buffer.buffer("first"), io.netty.handler.codec.mqtt.MqttQoS.AT_MOST_ONCE, false, false)));
@@ -128,7 +128,7 @@ public class Mqtt5ClientTopicAliasTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           client.publish(TOPIC, Buffer.buffer("first"),  io.netty.handler.codec.mqtt.MqttQoS.AT_MOST_ONCE, false, false);
@@ -162,7 +162,7 @@ public class Mqtt5ClientTopicAliasTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options());
+      MqttClient client = createClient(vertx, v5Options());
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack ->
           client.publish(TOPIC, Buffer.buffer("no-alias"), io.netty.handler.codec.mqtt.MqttQoS.AT_MOST_ONCE, false, false)));

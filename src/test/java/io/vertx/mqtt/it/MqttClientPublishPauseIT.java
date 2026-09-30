@@ -46,7 +46,7 @@ public class MqttClientPublishPauseIT extends MqttClientBaseIT {
 
     Async async = context.async();
     Vertx vertx = Vertx.vertx();
-    MqttClient client = MqttClient.create(vertx);
+    MqttClient client = createClient(vertx);
 
     client.publishHandler(mess -> {
       log.info("Received message id = " + mess.messageId());

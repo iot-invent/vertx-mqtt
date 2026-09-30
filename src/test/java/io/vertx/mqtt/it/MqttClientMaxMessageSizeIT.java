@@ -44,7 +44,7 @@ public class MqttClientMaxMessageSizeIT extends MqttClientBaseIT {
   @Test
   public void decoderMaxMessageSize(TestContext context) throws InterruptedException {
     Async async = context.async();
-    MqttClient client = MqttClient.create(Vertx.vertx(),
+    MqttClient client = createClient(Vertx.vertx(),
       new MqttClientOptions()
         .setMaxMessageSize(MQTT_MAX_MESSAGE_SIZE)
     );

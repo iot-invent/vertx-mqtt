@@ -48,6 +48,7 @@ import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttServer;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,7 +71,7 @@ import java.util.function.Consumer;
  *   5. Empty topic + undefined alias → close connection (important edge case)
  */
 @RunWith(VertxUnitRunner.class)
-public class Mqtt5TopicAliasHandlingTest {
+public class Mqtt5TopicAliasHandlingTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -78,7 +79,7 @@ public class Mqtt5TopicAliasHandlingTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx);
+    server = createServer(vertx);
   }
 
   @After
@@ -117,7 +118,7 @@ public class Mqtt5TopicAliasHandlingTest {
     });
 
     startServer(ctx, () -> {
-      MqttClient client = MqttClient.create(vertx, v5Options(255));
+      MqttClient client = createClient(vertx, v5Options(255));
       client.connect(server.actualPort(), "localhost")
         .onComplete(ctx.asyncAssertSuccess(ack -> {
           // First publish: client sends full topic + alias; second: alias-only
@@ -179,7 +180,7 @@ public class Mqtt5TopicAliasHandlingTest {
 
     startServer(ctx, () -> {
       // Client declares it accepts at most 10 aliases from the server
-      MqttClient client = MqttClient.create(vertx, v5Options(10));
+      MqttClient client = createClient(vertx, v5Options(10));
       client.closeHandler(v -> clientClosed.complete());
       client.connect(server.actualPort(), "localhost");
     });
@@ -302,6 +303,8 @@ public class Mqtt5TopicAliasHandlingTest {
    */
   private void rawMqtt5Test(int port, int clientTopicAliasMaximum,
                              Consumer<Channel> afterConnack) throws InterruptedException {
+    // the raw client tests the server side and speaks MQTT over plain TCP only
+    Assume.assumeFalse("raw MQTT client does not speak WebSocket", useWebSocket());
     EventLoopGroup group = new NioEventLoopGroup(1);
     CountDownLatch connackLatch = new CountDownLatch(1);
     CountDownLatch closedLatch  = new CountDownLatch(1);

@@ -78,9 +78,9 @@ public class MqttClientSubscribeIT extends MqttClientBaseIT {
     Async publish = context.async(2);
     Async async = context.async();
 
-    MqttClient subscriber1 = MqttClient.create(Vertx.vertx());
-    MqttClient subscriber2 = MqttClient.create(Vertx.vertx());
-    MqttClient publisher = MqttClient.create(Vertx.vertx());
+    MqttClient subscriber1 = createClient(Vertx.vertx());
+    MqttClient subscriber2 = createClient(Vertx.vertx());
+    MqttClient publisher = createClient(Vertx.vertx());
 
     // subscriber1 connects, subscribe and then un-unsubscribe, it won't get the published message
     subscriber1.connect(port, host).onComplete(context.asyncAssertSuccess(v -> {
@@ -145,7 +145,7 @@ public class MqttClientSubscribeIT extends MqttClientBaseIT {
   private void subscribeAndReceive(TestContext context, MqttQoS qos) {
 
     Async async = context.async();
-    MqttClient client = MqttClient.create(Vertx.vertx());
+    MqttClient client = createClient(Vertx.vertx());
 
     client.publishHandler(publish -> {
         assertTrue(publish.qosLevel() == qos);
@@ -174,7 +174,7 @@ public class MqttClientSubscribeIT extends MqttClientBaseIT {
     this.messageId = 0;
 
     Async async = context.async();
-    MqttClient client = MqttClient.create(Vertx.vertx());
+    MqttClient client = createClient(Vertx.vertx());
 
     client.subscribeCompletionHandler(suback -> {
       assertTrue(suback.messageId() == messageId);

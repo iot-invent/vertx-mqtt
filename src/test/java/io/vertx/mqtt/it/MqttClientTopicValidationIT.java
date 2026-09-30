@@ -87,7 +87,7 @@ public class MqttClientTopicValidationIT extends MqttClientBaseIT {
 
     log.info(String.format("test publishing in \"%s\" topic", topicName));
     Async async = context.async(2);
-    MqttClient client = MqttClient.create(Vertx.vertx());
+    MqttClient client = createClient(Vertx.vertx());
 
     client.connect(port, host).onComplete(context.asyncAssertSuccess(c -> {
       client.publish(
@@ -115,7 +115,7 @@ public class MqttClientTopicValidationIT extends MqttClientBaseIT {
     log.info(String.format("test subscribing for \"%s\" topic", topicFilter));
 
     Async async = context.async(2);
-    MqttClient client = MqttClient.create(Vertx.vertx());
+    MqttClient client = createClient(Vertx.vertx());
 
     client.connect(port, host).onComplete(context.asyncAssertSuccess(c -> {
 
