@@ -38,10 +38,13 @@ pipeline {
         string(name: "MVN_PARAMS", defaultValue: "", description: "Additional Maven Parameters for: mvn clean deploy")
     }
     environment {
-        // The shared settings file pins the local repository to /var/jenkins_home/.m2/repository,
-        // which does not exist on it-runner, and Maven aborts instead of falling back.
-        // Single-quoted so Groovy leaves $HOME to the shell.
-        MVN_REPO = '-Dmaven.repo.local=$HOME/.m2/repository'
+        // Two values of the shared settings file only hold on the controller:
+        // - the local repository /var/jenkins_home/.m2/repository does not exist on it-runner, and
+        //   Maven aborts instead of falling back. Single-quoted so Groovy leaves $HOME to the shell.
+        // - repo.releases/repo.snapshots point to http://nexus:8081, a name only the controller's
+        //   Docker network resolves. The same repositories are reachable under the public host,
+        //   the credentials of server id nexus stay with the settings. -D beats the settings profile.
+        MVN_AGENT = '-Dmaven.repo.local=$HOME/.m2/repository -Drepo.releases=https://repository.iot-invent.com/repository/iot-releases/ -Drepo.snapshots=https://repository.iot-invent.com/repository/iot-snapshots/'
         // Without Docker MosquittoTest fails instead of skipping, the *IT classes are not picked up by default.
         // An exclusion alone is no selection: surefire then treats every class as a test, module-info included.
         TEST_SELECTION = "${params.INTEGRATION_TESTS ? "-Dtest='*Test,*IT'" : "-Dtest='*Test,!MosquittoTest'"} -Dsurefire.failIfNoSpecifiedTests=false"
@@ -56,7 +59,7 @@ pipeline {
             when { expression { !params.RELEASE } }
             steps {
                 withMaven(maven: 'M3', mavenSettingsConfig: 'iot_maven') {
-                    sh "mvn ${env.MVN_REPO} ${params.MVN_PARAMS} -e -B clean deploy ${env.TEST_SELECTION}"
+                    sh "mvn ${env.MVN_AGENT} ${params.MVN_PARAMS} -e -B clean deploy ${env.TEST_SELECTION}"
                 }
             }
         }
@@ -74,8 +77,8 @@ pipeline {
                 }
                 withMaven(maven: 'M3', mavenSettingsConfig: 'iot_maven') {
                     // the version is set in the workspace only, the branch keeps its -SNAPSHOT
-                    sh "mvn ${env.MVN_REPO} -B versions:set -DnewVersion=${env.RELEASE_VERSION} -DgenerateBackupPoms=false"
-                    sh "mvn ${env.MVN_REPO} -B clean deploy ${env.TEST_SELECTION}"
+                    sh "mvn ${env.MVN_AGENT} -B versions:set -DnewVersion=${env.RELEASE_VERSION} -DgenerateBackupPoms=false"
+                    sh "mvn ${env.MVN_AGENT} -B clean deploy ${env.TEST_SELECTION}"
                 }
                 withCredentials([gitUsernamePassword(credentialsId: 'iot-invent-bot', gitToolName: 'Default')]) {
                     sh """
