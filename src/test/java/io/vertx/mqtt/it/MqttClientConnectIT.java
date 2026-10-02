@@ -24,6 +24,8 @@ import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttConnectionException;
 import io.vertx.mqtt.MqttServer;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -35,9 +37,22 @@ import static org.junit.Assert.assertTrue;
  */
 public class MqttClientConnectIT extends MqttClientBaseIT {
 
+  private Vertx vertx;
+
+  @Before
+  public void createVertx() {
+    vertx = Vertx.vertx();
+  }
+
+  @After
+  public void closeVertx(TestContext context) {
+    // also closes the servers and clients a test created on it
+    vertx.close().onComplete(context.asyncAssertSuccess());
+  }
+
   @Test
   public void connectDisconnect(TestContext context) throws InterruptedException {
-    MqttClient client = createClient(Vertx.vertx());
+    MqttClient client = createClient(vertx);
 
     client
       .connect(port, host)
@@ -51,7 +66,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
   public void connectDisconnectWithIdleOption(TestContext context) {
     MqttClientOptions options = new MqttClientOptions();
     options.setKeepAliveInterval(100);
-    MqttClient client = createClient(Vertx.vertx(),options);
+    MqttClient client = createClient(vertx,options);
 
     client
       .connect(port, host)
@@ -64,7 +79,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
   @Test
   public void closeHandler(TestContext context) throws InterruptedException {
     Async async = context.async();
-    MqttClient client = createClient(Vertx.vertx(),
+    MqttClient client = createClient(vertx,
       new MqttClientOptions()
         .setKeepAliveInterval(5)
         .setAutoKeepAlive(false)
@@ -79,7 +94,7 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
 
   @Test
   public void tcpConnectionFails(TestContext context) {
-    MqttClient client = createClient(Vertx.vertx());
+    MqttClient client = createClient(vertx);
 
     client.closeHandler(v -> {
       // when TCP connection fails, this handler should not be called, connection not established
@@ -95,7 +110,6 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
   @Test
   public void connackNotOk(TestContext context) {
     Async asyncServer = context.async();
-    Vertx vertx = Vertx.vertx();
 
     MqttServer server = createServer(vertx);
     server.endpointHandler(endpoint -> {
@@ -119,7 +133,6 @@ public class MqttClientConnectIT extends MqttClientBaseIT {
         MqttConnectionException connEx = (MqttConnectionException) err;
         assertEquals(connEx.code(), MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
         assertFalse(client.isConnected());
-        vertx.close();
       }));
   }
 }
