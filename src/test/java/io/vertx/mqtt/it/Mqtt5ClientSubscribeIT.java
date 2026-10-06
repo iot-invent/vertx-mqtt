@@ -108,14 +108,15 @@ public class Mqtt5ClientSubscribeIT extends Mqtt5ClientBaseIT {
       received.complete();
     });
 
+    // the subscribe future completes once the SUBSCRIBE is sent, the broker has the subscription only with the SUBACK
+    subscriber.subscribeCompletionHandler(suback ->
+      publisher.connect(port, host)
+        .onComplete(ctx.asyncAssertSuccess(ack2 ->
+          publisher.publish(TOPIC, Buffer.buffer(payload), MqttQoS.AT_MOST_ONCE, false, false))));
+
     subscriber.connect(port, host)
-      .onComplete(ctx.asyncAssertSuccess(ack -> {
-        subscriber.subscribe(TOPIC, 0)
-          .onComplete(ctx.asyncAssertSuccess(subId ->
-            publisher.connect(port, host)
-              .onComplete(ctx.asyncAssertSuccess(ack2 ->
-                publisher.publish(TOPIC, Buffer.buffer(payload), MqttQoS.AT_MOST_ONCE, false, false)))));
-      }));
+      .onComplete(ctx.asyncAssertSuccess(ack ->
+        subscriber.subscribe(TOPIC, 0).onComplete(ctx.asyncAssertSuccess())));
 
     received.awaitSuccess(10000);
   }
