@@ -22,6 +22,7 @@ import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttServer;
 import io.vertx.mqtt.MqttServerOptions;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.testcontainers.containers.BindMode;
@@ -46,6 +47,12 @@ public abstract class MqttClientBaseIT {
     mosquitto.start();
     port = mosquitto.getMappedPort(useWebSocket() ? 9001 : 1883);
     host = mosquitto.getHost();
+  }
+
+  @After
+  public void stopBroker() {
+    // runs after the tearDown of the subclass, a container left running would live until the end of the test JVM
+    mosquitto.stop();
   }
 
   private GenericContainer newBroker() {
