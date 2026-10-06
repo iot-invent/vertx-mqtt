@@ -82,6 +82,16 @@ public class MqttClientSubscribeIT extends MqttClientBaseIT {
     MqttClient subscriber2 = createClient(Vertx.vertx());
     MqttClient publisher = createClient(Vertx.vertx());
 
+    // the (un)subscribe futures complete once the packet is sent, the broker has processed it only with the (UN)SUBACK
+    subscriber1.unsubscribeCompletionHandler(id -> {
+      log.info("Subscriber " + subscriber1.clientId() + " un-subscribed from " + MQTT_TOPIC);
+      publish.countDown();
+    });
+    subscriber2.subscribeCompletionHandler(suback -> {
+      log.info("Subscriber " + subscriber2.clientId() + " subscribed to " + MQTT_TOPIC);
+      publish.countDown();
+    });
+
     // subscriber1 connects, subscribe and then un-unsubscribe, it won't get the published message
     subscriber1.connect(port, host).onComplete(context.asyncAssertSuccess(v -> {
 
@@ -94,11 +104,7 @@ public class MqttClientSubscribeIT extends MqttClientBaseIT {
 
         log.info("Subscriber " + subscriber1.clientId() + " subscribed to " + MQTT_TOPIC);
 
-        subscriber1.unsubscribe(MQTT_TOPIC).onComplete(context.asyncAssertSuccess(ar2 -> {
-
-          log.info("Subscriber " + subscriber1.clientId() + " un-subscribed from " + MQTT_TOPIC);
-          publish.countDown();
-        }));
+        subscriber1.unsubscribe(MQTT_TOPIC).onComplete(context.asyncAssertSuccess());
 
       }));
 
@@ -112,10 +118,7 @@ public class MqttClientSubscribeIT extends MqttClientBaseIT {
         async.complete();
       });
 
-      subscriber2.subscribe(MQTT_TOPIC, MqttQoS.AT_MOST_ONCE.value()).onComplete(context.asyncAssertSuccess(v2 -> {
-        log.info("Subscriber " + subscriber2.clientId() + " subscribed to " + MQTT_TOPIC);
-        publish.countDown();
-      }));
+      subscriber2.subscribe(MQTT_TOPIC, MqttQoS.AT_MOST_ONCE.value()).onComplete(context.asyncAssertSuccess());
 
     }));
 
