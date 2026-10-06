@@ -25,11 +25,7 @@ import io.vertx.mqtt.MqttServerOptions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.containers.wait.strategy.WaitAllStrategy;
-import org.testcontainers.utility.DockerImageName;
 
 /**
  * MQTT client testing about connection
@@ -45,7 +41,7 @@ public abstract class MqttClientBaseIT {
   @Before
   public void setUp() {
     mosquitto.start();
-    port = mosquitto.getMappedPort(useWebSocket() ? 9001 : 1883);
+    port = mosquitto.getMappedPort(useWebSocket() ? MqttBrokerContainers.webSocketPort() : 1883);
     host = mosquitto.getHost();
   }
 
@@ -56,18 +52,8 @@ public abstract class MqttClientBaseIT {
   }
 
   private GenericContainer newBroker() {
-    if (useWebSocket()) {
-      // the ansi/mosquitto image is built without WebSocket support
-      return new GenericContainer<>(DockerImageName.parse("eclipse-mosquitto:2.0.12"))
-        .withExposedPorts(1883, 9001)
-        .withClasspathResourceMapping("it/mosquitto.conf", "/mosquitto/config/mosquitto.conf", BindMode.READ_ONLY)
-        // the log line alone does not mean the mapped ports already accept connections
-        .waitingFor(new WaitAllStrategy()
-          .withStrategy(Wait.forLogMessage(".*mosquitto .* running.*", 1))
-          .withStrategy(Wait.forListeningPort()));
-    }
-    return new GenericContainer(DockerImageName.parse("ansi/mosquitto"))
-      .withExposedPorts(1883);
+    // the ansi/mosquitto image is built without WebSocket support
+    return MqttBrokerContainers.create(useWebSocket() ? "eclipse-mosquitto:2.0.12" : "ansi/mosquitto", useWebSocket());
   }
 
   /**

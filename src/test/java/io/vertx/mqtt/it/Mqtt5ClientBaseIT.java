@@ -24,27 +24,18 @@ import io.vertx.mqtt.MqttClientOptions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.containers.wait.strategy.WaitAllStrategy;
-import org.testcontainers.utility.DockerImageName;
 
 /**
  * Base class for MQTT 5.0 integration tests running against a real Mosquitto 2.x broker.
  * The broker is started via Testcontainers using the same {@code mosquitto.conf} used by
  * the existing integration tests ({@code allow_anonymous true}, port 1883, WebSocket port 9001).
+ * {@code -Dit.broker=hivemq} runs them against HiveMQ CE instead, see {@link MqttBrokerContainers}.
  */
 @RunWith(VertxUnitRunner.class)
 public abstract class Mqtt5ClientBaseIT {
 
-  public GenericContainer<?> mosquitto = new GenericContainer<>(DockerImageName.parse("eclipse-mosquitto:2.0.12"))
-    .withExposedPorts(1883, 9001)
-    .withClasspathResourceMapping("it/mosquitto.conf", "/mosquitto/config/mosquitto.conf", BindMode.READ_ONLY)
-    // the log line alone does not mean the mapped ports already accept connections
-    .waitingFor(new WaitAllStrategy()
-      .withStrategy(Wait.forLogMessage(".*mosquitto .* running.*", 1))
-      .withStrategy(Wait.forListeningPort()));
+  public GenericContainer<?> mosquitto = MqttBrokerContainers.create("eclipse-mosquitto:2.0.12", useWebSocket());
 
   protected int port;
   protected String host;
@@ -52,7 +43,7 @@ public abstract class Mqtt5ClientBaseIT {
   @Before
   public void setUp() {
     mosquitto.start();
-    port = mosquitto.getMappedPort(useWebSocket() ? 9001 : 1883);
+    port = mosquitto.getMappedPort(useWebSocket() ? MqttBrokerContainers.webSocketPort() : 1883);
     host = mosquitto.getHost();
   }
 
