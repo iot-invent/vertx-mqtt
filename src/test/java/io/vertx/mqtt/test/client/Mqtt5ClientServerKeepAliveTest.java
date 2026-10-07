@@ -93,11 +93,10 @@ public class Mqtt5ClientServerKeepAliveTest extends MqttClientTestBase {
     int port = listen();
 
     Async done = ctx.async();
-    MqttClient client = createClient(vertx, v5Options(2));
+    MqttClient client = createClient(vertx, v5Options(1));
     client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess(ack ->
-      // past the configured keep alive, but before the 3 s after which the Vert.x server closes the connection,
-      // as it watches the keep alive of the CONNECT regardless of the Server Keep Alive it sent
-      vertx.setTimer(2500, id -> {
+      // three times the configured keep alive
+      vertx.setTimer(3000, id -> {
         ctx.assertTrue(client.isConnected());
         ctx.assertEquals(0, pings.get());
         client.disconnect().onComplete(ctx.asyncAssertSuccess(v -> done.complete()));
