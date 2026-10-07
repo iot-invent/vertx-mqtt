@@ -25,14 +25,15 @@
 package io.vertx.mqtt.test.server;
 
 import io.netty.handler.codec.mqtt.MqttProperties;
-import io.netty.handler.codec.mqtt.MqttVersion;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.net.NetClient;
+import io.vertx.core.net.NetSocket;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import io.vertx.mqtt.MqttClient;
-import io.vertx.mqtt.MqttClientOptions;
-import io.vertx.mqtt.MqttEndpoint;
 import io.vertx.mqtt.MqttServer;
 import io.vertx.mqtt.MqttServerOptions;
 import org.junit.After;
@@ -42,18 +43,21 @@ import org.junit.runner.RunWith;
 
 /**
  * After accepting with a Server Keep Alive (MQTT 5.0 §3.2.2.3.14) the server watches that keep alive instead of the
- * one the client requested. The clients ping manually, so the tests do not depend on the client's keep alive handling.
+ * one the client requested. The client is a plain socket sending exactly the packets a test needs.
  */
 @RunWith(VertxUnitRunner.class)
 public class Mqtt5ServerKeepAliveTest {
 
   private Vertx vertx;
   private MqttServer server;
+  // referenced for the whole test, Vert.x closes a client that is no longer referenced
+  private NetClient client;
 
   @Before
   public void before() {
     vertx = Vertx.vertx();
     server = MqttServer.create(vertx, new MqttServerOptions().setPort(0));
+    client = vertx.createNetClient();
   }
 
   @After
@@ -70,10 +74,22 @@ public class Mqtt5ServerKeepAliveTest {
     return server.listen().await().actualPort();
   }
 
-  private MqttClient silentClient(int keepAliveInterval) {
-    MqttClientOptions options = new MqttClientOptions().setKeepAliveInterval(keepAliveInterval).setAutoKeepAlive(false);
-    options.setVersion(MqttVersion.MQTT_5.protocolLevel());
-    return MqttClient.create(vertx, options);
+  /**
+   * @return a socket that sent an MQTT 5 CONNECT requesting the keep alive, completed with the CONNACK
+   */
+  private Future<NetSocket> connect(int port, int keepAlive) {
+    Buffer connect = Buffer.buffer()
+      .appendBytes(new byte[]{0x10, 15})                           // CONNECT, remaining length
+      .appendBytes(new byte[]{0x00, 0x04, 'M', 'Q', 'T', 'T', 5})  // protocol name and level
+      .appendByte((byte) 0x02)                                     // clean start
+      .appendUnsignedShort(keepAlive)
+      .appendByte((byte) 0x00)                                     // no properties
+      .appendBytes(new byte[]{0x00, 0x02, 'k', 'a'});              // client identifier
+    return client.connect(port, "localhost").compose(so -> {
+      Promise<NetSocket> connack = Promise.promise();
+      so.handler(buf -> connack.tryComplete(so));
+      return so.write(connect).compose(v -> connack.future());
+    });
   }
 
   /**
@@ -84,13 +100,14 @@ public class Mqtt5ServerKeepAliveTest {
     int port = listenAcceptingWithServerKeepAlive(0);
 
     Async done = ctx.async();
-    MqttClient client = silentClient(1);
-    client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess(ack ->
+    connect(port, 1).onComplete(ctx.asyncAssertSuccess(so -> {
+      so.closeHandler(v -> ctx.fail("Client closed although the Server Keep Alive is 0"));
       // past the 2 s after which the requested keep alive of 1 s would close the connection
       vertx.setTimer(3000, id -> {
-        ctx.assertTrue(client.isConnected());
-        client.disconnect().onComplete(ctx.asyncAssertSuccess(v -> done.complete()));
-      })));
+        so.closeHandler(null);
+        done.complete();
+      });
+    }));
   }
 
   /**
@@ -101,11 +118,10 @@ public class Mqtt5ServerKeepAliveTest {
     int port = listenAcceptingWithServerKeepAlive(1);
 
     Async closed = ctx.async();
-    MqttClient client = silentClient(30);
-    client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess(ack -> {
+    connect(port, 30).onComplete(ctx.asyncAssertSuccess(so -> {
       // closed after 2 s, with the requested 30 s it would take 45 s
       long timeout = vertx.setTimer(5000, id -> ctx.fail("Client not closed after the assigned keep alive"));
-      client.closeHandler(v -> {
+      so.closeHandler(v -> {
         vertx.cancelTimer(timeout);
         closed.complete();
       });
@@ -120,14 +136,14 @@ public class Mqtt5ServerKeepAliveTest {
     int port = listenAcceptingWithServerKeepAlive(3);
 
     Async done = ctx.async();
-    MqttClient client = silentClient(1);
-    client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess(ack -> {
+    connect(port, 1).onComplete(ctx.asyncAssertSuccess(so -> {
+      so.closeHandler(v -> ctx.fail("Client closed although it pinged within the Server Keep Alive"));
       // every 2.5 s: within the 4.5 s of the assigned keep alive, past the 2 s of the requested one
-      long pinger = vertx.setPeriodic(2500, id -> client.ping());
+      long pinger = vertx.setPeriodic(2500, id -> so.write(Buffer.buffer(new byte[]{(byte) 0xC0, 0x00})));
       vertx.setTimer(6000, id -> {
         vertx.cancelTimer(pinger);
-        ctx.assertTrue(client.isConnected());
-        client.disconnect().onComplete(ctx.asyncAssertSuccess(v -> done.complete()));
+        so.closeHandler(null);
+        done.complete();
       });
     }));
   }
