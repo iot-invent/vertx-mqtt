@@ -35,7 +35,7 @@ import org.testcontainers.containers.GenericContainer;
 @RunWith(VertxUnitRunner.class)
 public abstract class Mqtt5ClientBaseIT {
 
-  public GenericContainer<?> mosquitto = MqttBrokerContainers.create("eclipse-mosquitto:2.0.12", useWebSocket());
+  public GenericContainer<?> mosquitto = MqttBrokerContainers.create("eclipse-mosquitto:2.1.2-alpine", useWebSocket());
 
   protected int port;
   protected String host;
