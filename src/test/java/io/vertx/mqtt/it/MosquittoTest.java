@@ -23,7 +23,7 @@ import io.vertx.mqtt.MqttClientOptions;
 public class MosquittoTest {
 
   @Container
-  public static GenericContainer<?> mosquitto = new GenericContainer(DockerImageName.parse("eclipse-mosquitto:2.0.12"))
+  public static GenericContainer<?> mosquitto = new GenericContainer(DockerImageName.parse("eclipse-mosquitto:2.1.2-alpine"))
     .withExposedPorts(1883)
     .withClasspathResourceMapping("it/mosquitto.conf", "/mosquitto/config/mosquitto.conf", BindMode.READ_ONLY)
     .waitingFor(Wait.forLogMessage(".*mosquitto .* running.*", 1));

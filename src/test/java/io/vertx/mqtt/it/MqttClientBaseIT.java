@@ -53,7 +53,7 @@ public abstract class MqttClientBaseIT {
 
   private GenericContainer newBroker() {
     // the ansi/mosquitto image is built without WebSocket support
-    return MqttBrokerContainers.create(useWebSocket() ? "eclipse-mosquitto:2.0.12" : "ansi/mosquitto", useWebSocket());
+    return MqttBrokerContainers.create(useWebSocket() ? "eclipse-mosquitto:2.1.2-alpine" : "ansi/mosquitto", useWebSocket());
   }
 
   /**
