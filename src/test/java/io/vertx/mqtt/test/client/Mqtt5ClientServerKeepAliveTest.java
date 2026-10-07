@@ -118,7 +118,7 @@ public class Mqtt5ClientServerKeepAliveTest extends MqttClientTestBase {
     Async closed = ctx.async();
     MqttClient client = createClient(vertx, v5Options(30));
     client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess(ack -> {
-      // PINGREQ after 1 s, closed 1.5 s later; with the configured 30 s it would take 75 s
+      // PINGREQ after 1 s, closed 1.5 s later; with the timeout of the configured 30 s it would take 46 s
       long timeout = vertx.setTimer(6000, id -> ctx.fail("Client not closed after the assigned keep alive"));
       client.closeHandler(v -> {
         vertx.cancelTimer(timeout);
