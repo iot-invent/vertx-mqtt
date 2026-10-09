@@ -226,7 +226,7 @@ public class MqttClientQoSTest extends MqttClientTestBase {
 
     startServer();
 
-    client = MqttClient.create(vertx, new MqttClientOptions().setMaxInflightQueue(2));
+    client = createClient(vertx, new MqttClientOptions().setMaxInflightQueue(2));
     client.publishHandler(msg -> deliveredToApp.incrementAndGet());
 
     List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());

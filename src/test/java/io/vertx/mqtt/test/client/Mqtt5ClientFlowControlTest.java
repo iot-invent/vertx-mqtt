@@ -242,7 +242,7 @@ public class Mqtt5ClientFlowControlTest extends MqttClientTestBase {
     startServer(ctx, () -> {
       MqttClientOptions opts = v5Options();
       opts.setMaxInflightQueue(2);
-      MqttClient client = MqttClient.create(vertx, opts);
+      MqttClient client = createClient(vertx, opts);
 
       client.connect(server.actualPort(), "localhost").onComplete(ctx.asyncAssertSuccess(ack -> {
         client.subscribe(TOPIC, MqttQoS.EXACTLY_ONCE.value());
@@ -275,7 +275,7 @@ public class Mqtt5ClientFlowControlTest extends MqttClientTestBase {
     startServer(ctx, () -> {
       MqttClientOptions opts = v5Options();
       opts.setMaxInflightQueue(1);
-      MqttClient client = MqttClient.create(vertx, opts);
+      MqttClient client = createClient(vertx, opts);
       client.publishHandler(msg -> {
         if (deliveredToApp.incrementAndGet() == 2) {
           secondDelivered.complete();
