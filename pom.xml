@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>vertx-mqtt</artifactId>
-  <version>5.2.0-iot-SNAPSHOT</version>
+  <version>5.2.1-iot-SNAPSHOT</version>
 
   <scm>
     <connection>scm:git:git@github.com:vert-x3/vertx-mqtt.git</connection>
@@ -28,7 +28,7 @@
 
   <properties>
     <!-- IoT Invent build: the Vert.x release this fork is based on, the project version carries the -iot qualifier -->
-    <vertx.dependencies.version>5.2.0</vertx.dependencies.version>
+    <vertx.dependencies.version>5.2.1</vertx.dependencies.version>
     <junit.version>4.13.1</junit.version>
     <mockito.version>3.3.3</mockito.version>
     <paho.version>1.2.5</paho.version>
