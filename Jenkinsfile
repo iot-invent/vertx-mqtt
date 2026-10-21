@@ -46,7 +46,9 @@ pipeline {
             when { expression { !params.RELEASE } }
             steps {
                 withMaven(maven: 'M3', mavenSettingsConfig: 'iot_maven') {
-                    sh "mvn ${env.MVN_AGENT} ${params.MVN_PARAMS} -e -B clean deploy ${env.TEST_SELECTION}"
+                    withEnv(["MVN_PARAMS=${mvnParams()}"]) {
+                        sh "mvn ${env.MVN_AGENT} \$MVN_PARAMS -e -B clean deploy ${env.TEST_SELECTION}"
+                    }
                 }
             }
         }
@@ -151,4 +153,16 @@ def osvVulnerabilities(String coordinates, String version) {
         lines << "${v.id} (${(v.aliases ?: []).join(', ')}): ${v.summary ?: ''}".toString()
     }
     return lines
+}
+
+/**
+ * MVN_PARAMS, checked: Maven options only, nothing the shell would read as a command of its own (RM-182).
+ * It reaches the shell through the environment, not by Groovy interpolation.
+ */
+String mvnParams() {
+    String value = (params.MVN_PARAMS ?: '').trim()
+    if (!(value ==~ /[A-Za-z0-9=._:,\/@+\- ]*/)) {
+        error "MVN_PARAMS may only hold Maven options (letters, digits, = . _ : , / @ + - and spaces), not '${value}'"
+    }
+    return value
 }
