@@ -40,43 +40,46 @@ import io.netty.handler.codec.mqtt.MqttProperties.UserProperties;
 import io.netty.handler.codec.mqtt.MqttPubReplyMessageVariableHeader;
 import io.netty.handler.codec.mqtt.MqttPublishVariableHeader;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttReasonCodeAndPropertiesVariableHeader;
 import io.netty.handler.codec.mqtt.MqttSubscribePayload;
 import io.netty.handler.codec.mqtt.MqttTopicSubscription;
 import io.netty.handler.codec.mqtt.MqttUnsubscribePayload;
-import io.netty.handler.codec.mqtt.MqttReasonCodeAndPropertiesVariableHeader;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.vertx.core.*;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.internal.ContextInternal;
-import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.internal.PromiseInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.internal.buffer.BufferInternal;
-import io.vertx.core.internal.net.NetSocketInternal;
 import io.vertx.core.internal.logging.Logger;
 import io.vertx.core.internal.logging.LoggerFactory;
+import io.vertx.core.internal.net.NetSocketInternal;
 import io.vertx.core.net.NetClient;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttConnectionException;
 import io.vertx.mqtt.MqttException;
+import io.vertx.mqtt.messages.MqttAuthenticationExchangeMessage;
 import io.vertx.mqtt.messages.MqttConnAckMessage;
+import io.vertx.mqtt.messages.MqttDisconnectMessage;
 import io.vertx.mqtt.messages.MqttMessage;
+import io.vertx.mqtt.messages.MqttPubAckMessage;
+import io.vertx.mqtt.messages.MqttPubCompMessage;
+import io.vertx.mqtt.messages.MqttPubRecMessage;
 import io.vertx.mqtt.messages.MqttPublishMessage;
 import io.vertx.mqtt.messages.MqttSubAckMessage;
-import io.vertx.mqtt.messages.MqttAuthenticationExchangeMessage;
+import io.vertx.mqtt.messages.MqttUnsubAckMessage;
 import io.vertx.mqtt.messages.codes.MqttAuthenticateReasonCode;
 import io.vertx.mqtt.messages.codes.MqttDisconnectReasonCode;
 import io.vertx.mqtt.messages.codes.MqttPubAckReasonCode;
+import io.vertx.mqtt.messages.codes.MqttPubCompReasonCode;
 import io.vertx.mqtt.messages.codes.MqttPubRecReasonCode;
 import io.vertx.mqtt.messages.codes.MqttPubRelReasonCode;
-import io.vertx.mqtt.messages.codes.MqttPubCompReasonCode;
-import io.vertx.mqtt.messages.MqttDisconnectMessage;
-import io.vertx.mqtt.messages.MqttPubAckMessage;
-import io.vertx.mqtt.messages.MqttPubRecMessage;
-import io.vertx.mqtt.messages.MqttPubCompMessage;
-import io.vertx.mqtt.messages.MqttUnsubAckMessage;
 import io.vertx.mqtt.messages.impl.MqttPublishMessageImpl;
 
 import java.io.UnsupportedEncodingException;
@@ -94,7 +97,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static io.netty.handler.codec.mqtt.MqttQoS.*;
+import static io.netty.handler.codec.mqtt.MqttQoS.AT_LEAST_ONCE;
+import static io.netty.handler.codec.mqtt.MqttQoS.AT_MOST_ONCE;
+import static io.netty.handler.codec.mqtt.MqttQoS.valueOf;
 
 /**
  * MQTT client implementation
@@ -186,8 +191,8 @@ public class MqttClientImpl implements MqttClient {
   // counter for the message identifier
   private int messageIdCounter;
 
-  // Keep alive management
-  private final long keepAliveTimeout;
+  // Keep alive management: the interval of the current connection, the configured one unless the server assigned one
+  private int keepAliveInterval;
   private Deque<Ping> pings = new ArrayDeque<>();
 
   // total number of unacknowledged packets
@@ -208,7 +213,6 @@ public class MqttClientImpl implements MqttClient {
   public MqttClientImpl(Vertx vertx, MqttClientOptions options) {
     this.vertx = (VertxInternal) vertx;
     this.options = new MqttClientOptions(options);
-    this.keepAliveTimeout = ((options.getKeepAliveInterval() * 1000) * 3) / 2;
   }
 
   int getInFlightMessagesCount() {
@@ -296,6 +300,7 @@ public class MqttClientImpl implements MqttClient {
             options.setClientId(generateRandomClientId());
           }
 
+          keepAliveInterval = options.getKeepAliveInterval();
           initChannel(soi);
           synchronized (MqttClientImpl.this) {
             this.connection = soi;
@@ -1062,7 +1067,9 @@ public class MqttClientImpl implements MqttClient {
 
       io.netty.handler.codec.mqtt.MqttMessage pingreq = MqttMessageFactory.newMessage(fixedHeader, null, null);
 
-      long id = vertx.setTimer(keepAliveTimeout, _id -> {
+      // a server may switch keep alive off (Server Keep Alive 0), a manual ping still waits as configured
+      int interval = keepAliveInterval > 0 ? keepAliveInterval : options.getKeepAliveInterval();
+      long id = vertx.setTimer(interval * 1500L, _id -> {
         disconnect();
       });
 
@@ -1117,6 +1124,31 @@ public class MqttClientImpl implements MqttClient {
    * @param publishMessage a PUBLISH message to acknowledge
    */
   private void publishReceived(MqttPublishMessage publishMessage) {
+    boolean queueFull;
+    synchronized (this) {
+      queueFull = qos2inbound.size() >= options.getMaxInflightQueue();
+      if (!queueFull) {
+        qos2inbound.put(publishMessage.messageId(), publishMessage);
+      }
+    }
+
+    if (queueFull) {
+      if (options.getVersion() == 5) {
+        // Reject per-message with Quota Exceeded
+        MqttFixedHeader fixedHeader =
+          new MqttFixedHeader(MqttMessageType.PUBREC, false, AT_MOST_ONCE, false, 0);
+        MqttPubReplyMessageVariableHeader variableHeader = new MqttPubReplyMessageVariableHeader(
+          publishMessage.messageId(), MqttPubRecReasonCode.QUOTA_EXCEEDED.value(), MqttProperties.NO_PROPERTIES);
+        this.write(MqttMessageFactory.newMessage(fixedHeader, variableHeader, null));
+      } else {
+        // Close the connection
+        log.error("Inbound QoS 2 queue full (" + options.getMaxInflightQueue() + " messages), closing connection");
+        handleException(new MqttException(MqttException.MQTT_INFLIGHT_QUEUE_FULL,
+                                          "Inbound QoS 2 queue full: " + options.getMaxInflightQueue() + " messages"));
+        connection.close();
+      }
+      return;
+    }
 
     MqttFixedHeader fixedHeader =
       new MqttFixedHeader(MqttMessageType.PUBREC, false, AT_MOST_ONCE, false, 0);
@@ -1126,9 +1158,6 @@ public class MqttClientImpl implements MqttClient {
 
     io.netty.handler.codec.mqtt.MqttMessage pubrec = MqttMessageFactory.newMessage(fixedHeader, variableHeader, null);
 
-    synchronized (this) {
-      qos2inbound.put(publishMessage.messageId(), publishMessage);
-    }
     this.write(pubrec);
   }
 
@@ -1295,22 +1324,24 @@ public class MqttClientImpl implements MqttClient {
     }
 
     if (this.options.isAutoKeepAlive() &&
-      this.options.getKeepAliveInterval() != 0) {
-
-      int keepAliveInterval = this.options.getKeepAliveInterval();
-
-      // handler for sending PINGREQ (keepAlive) if reader- or writer-channel become idle
-      pipeline.addBefore("handler", "idle",
-        new IdleStateHandler(0, keepAliveInterval, 0) {
-          @Override
-          protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
-            if (evt.state() == IdleState.WRITER_IDLE) {
-              // verify that server is still connected (e.g. when only publishing QoS-0 messages)
-              ping();
-            }
-          }
-        });
+      keepAliveInterval != 0) {
+      pipeline.addBefore("handler", "idle", newKeepAliveHandler(keepAliveInterval));
     }
+  }
+
+  /**
+   * @return a handler sending a PINGREQ when nothing was written for the keep alive interval
+   */
+  private IdleStateHandler newKeepAliveHandler(int keepAliveInterval) {
+    return new IdleStateHandler(0, keepAliveInterval, 0) {
+      @Override
+      protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
+        if (evt.state() == IdleState.WRITER_IDLE) {
+          // verify that server is still connected (e.g. when only publishing QoS-0 messages)
+          ping();
+        }
+      }
+    };
   }
 
   /**
@@ -1990,24 +2021,18 @@ public class MqttClientImpl implements MqttClient {
 
     // Server Keep Alive: MUST use this value instead of what we sent
     Integer serverKeepAlive = msg.serverKeepAlive();
-    if (serverKeepAlive != null && options.getKeepAliveInterval() != serverKeepAlive) {
-      options.setKeepAliveInterval(serverKeepAlive);
+    // (for this connection only, the next CONNECT requests the configured value again)
+    if (serverKeepAlive != null && keepAliveInterval != serverKeepAlive) {
+      keepAliveInterval = serverKeepAlive;
       log.debug("Server assigned keep alive: " + serverKeepAlive + "s");
 
-      // Update the IdleStateHandler in the pipeline with the new keep-alive interval
+      // Update the IdleStateHandler in the pipeline with the new keep-alive interval, 0 switches keep alive off
       ChannelPipeline pipeline = connection.channelHandlerContext().pipeline();
       if (pipeline.get("idle") != null) {
         pipeline.remove("idle");
-        pipeline.addBefore("handler", "idle",
-            new IdleStateHandler(0, serverKeepAlive, 0) {
-              @Override
-              protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
-                if (evt.state() == IdleState.WRITER_IDLE) {
-                  // verify that server is still connected (e.g. when only publishing QoS-0 messages)
-                  ping();
-                }
-              }
-            });
+        if (serverKeepAlive > 0) {
+          pipeline.addBefore("handler", "idle", newKeepAliveHandler(serverKeepAlive));
+        }
       }
     }
 
