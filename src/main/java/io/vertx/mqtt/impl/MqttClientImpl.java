@@ -1545,7 +1545,15 @@ public class MqttClientImpl implements MqttClient {
     Promise<Void> disconnectPromise;
     NetClient client;
     Deque<Ping> pings;
+    List<ExpiringPacket> lostPackets;
     synchronized (this) {
+      // QoS 1 and 2 messages still waiting for an acknowledgement are lost with the connection, as the client does not
+      // resend them: free their in-flight slots. The inbound QoS 2 state stays, a kept session re-sends its PUBREL.
+      lostPackets = new ArrayList<>(this.qos1outbound.values());
+      lostPackets.addAll(this.qos2outbound.values());
+      this.qos1outbound.clear();
+      this.qos2outbound.clear();
+      this.countInflightQueue = 0;
       pendingRedirect = this.pendingRedirect;
       this.pendingRedirect = null;
       pendingDisconnectMessage = this.pendingDisconnectMessage;
@@ -1566,6 +1574,15 @@ public class MqttClientImpl implements MqttClient {
     pings.forEach(ping -> {
       ping.cancel();
     });
+
+    // the client stops waiting for the acknowledgements of the lost messages
+    Handler<Integer> expirationHandler = publishCompletionExpirationHandler();
+    for (ExpiringPacket lostPacket : lostPackets) {
+      lostPacket.cancelTimer();
+      if (expirationHandler != null) {
+        expirationHandler.handle(lostPacket.packetId);
+      }
+    }
 
     // MQTT 5.0 server redirect: reconnect transparently to the referenced server
     if (pendingRedirect != null) {
