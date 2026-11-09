@@ -250,6 +250,9 @@ public interface MqttClient {
    * <p>
    * Note that this behavior is outside the scope of the MQTT 3.1.1 specification. The client's default
    * behavior is therefore to wait forever for the server's corresponding acknowledgement.
+   * <p>
+   * The handler is also called for each message still waiting for its acknowledgement when the connection is closed,
+   * as the client does not resend it on a next connection.
    *
    * @param publishCompletionExpirationHandler the handler to call with the ID of the expired packet
    * @return current MQTT client instance

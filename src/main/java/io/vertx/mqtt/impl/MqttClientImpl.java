@@ -110,6 +110,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1449,14 +1450,19 @@ public class MqttClientImpl implements MqttClient {
   }
 
   /**
-   * @return a handler sending a PINGREQ when nothing was written for the keep alive interval
+   * @return a handler sending a PINGREQ when nothing was written for the keep alive interval, or nothing was received
+   * for one and a half times the keep alive interval
    */
   private IdleStateHandler newKeepAliveHandler(int keepAliveInterval) {
-    return new IdleStateHandler(0, keepAliveInterval, 0) {
+    long keepAliveMillis = keepAliveInterval * 1000L;
+    return new IdleStateHandler(keepAliveMillis * 3 / 2, keepAliveMillis, 0, TimeUnit.MILLISECONDS) {
       @Override
       protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
         if (evt.state() == IdleState.WRITER_IDLE) {
           // verify that server is still connected (e.g. when only publishing QoS-0 messages)
+          ping();
+        } else if (evt.state() == IdleState.READER_IDLE && pings.isEmpty()) {
+          // a client that keeps writing never gets idle, verify that the server still responds
           ping();
         }
       }
@@ -1545,7 +1551,15 @@ public class MqttClientImpl implements MqttClient {
     Promise<Void> disconnectPromise;
     NetClient client;
     Deque<Ping> pings;
+    List<ExpiringPacket> lostPackets;
     synchronized (this) {
+      // QoS 1 and 2 messages still waiting for an acknowledgement are lost with the connection, as the client does not
+      // resend them: free their in-flight slots. The inbound QoS 2 state stays, a kept session re-sends its PUBREL.
+      lostPackets = new ArrayList<>(this.qos1outbound.values());
+      lostPackets.addAll(this.qos2outbound.values());
+      this.qos1outbound.clear();
+      this.qos2outbound.clear();
+      this.countInflightQueue = 0;
       pendingRedirect = this.pendingRedirect;
       this.pendingRedirect = null;
       pendingDisconnectMessage = this.pendingDisconnectMessage;
@@ -1566,6 +1580,15 @@ public class MqttClientImpl implements MqttClient {
     pings.forEach(ping -> {
       ping.cancel();
     });
+
+    // the client stops waiting for the acknowledgements of the lost messages
+    Handler<Integer> expirationHandler = publishCompletionExpirationHandler();
+    for (ExpiringPacket lostPacket : lostPackets) {
+      lostPacket.cancelTimer();
+      if (expirationHandler != null) {
+        expirationHandler.handle(lostPacket.packetId);
+      }
+    }
 
     // MQTT 5.0 server redirect: reconnect transparently to the referenced server
     if (pendingRedirect != null) {
@@ -2045,11 +2068,15 @@ public class MqttClientImpl implements MqttClient {
     MqttMessage message;
     synchronized (this) {
       message = qos2inbound.remove(pubrelMessageId);
+    }
 
-      if (message == null) {
-        log.warn("Received PUBREL packet without having related PUBREC packet in storage");
-        return;
-      }
+    if (message == null) {
+      // e.g. after a reconnect with a kept session, the server re-sends the PUBREL of a PUBREC sent on the previous
+      // connection: it still expects a PUBCOMP (MQTT 3.1.1 section 4.3.3), which MQTT 5 marks with reason code 0x92,
+      // not an error during recovery (MQTT 5.0 section 3.7.2.1)
+      log.debug("Received PUBREL packet without having related PUBREC packet in storage, completing it");
+      this.publishComplete(pubrelMessageId, MqttPubCompReasonCode.PACKET_IDENTIFIER_NOT_FOUND, MqttProperties.NO_PROPERTIES);
+      return;
     }
 
     if (options.isAutoAck()) {
