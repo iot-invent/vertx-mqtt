@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * half times the keep alive, it sends a PINGREQ and closes the connection without PINGRESP.
  */
 @RunWith(VertxUnitRunner.class)
-public class MqttClientKeepAliveUnresponsiveServerTest {
+public class MqttClientKeepAliveUnresponsiveServerTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -54,7 +54,7 @@ public class MqttClientKeepAliveUnresponsiveServerTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx, new MqttServerOptions().setPort(0));
+    server = createServer(vertx, new MqttServerOptions().setPort(0));
   }
 
   @After
@@ -75,7 +75,7 @@ public class MqttClientKeepAliveUnresponsiveServerTest {
     int port = server.listen().await().actualPort();
 
     Async closed = ctx.async();
-    MqttClient client = MqttClient.create(vertx, new MqttClientOptions().setKeepAliveInterval(1));
+    MqttClient client = createClient(vertx, new MqttClientOptions().setKeepAliveInterval(1));
     client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess(ack -> {
       long publisher = vertx.setPeriodic(300, id ->
         client.publish("keepalive/unresponsive", Buffer.buffer("x"), MqttQoS.AT_MOST_ONCE, false, false));
@@ -103,7 +103,7 @@ public class MqttClientKeepAliveUnresponsiveServerTest {
 
     Async done = ctx.async();
     AtomicInteger pongs = new AtomicInteger();
-    MqttClient client = MqttClient.create(vertx, new MqttClientOptions().setKeepAliveInterval(1));
+    MqttClient client = createClient(vertx, new MqttClientOptions().setKeepAliveInterval(1));
     client.pingResponseHandler(v -> pongs.incrementAndGet());
     client.closeHandler(v -> ctx.fail("Connection to a responsive server closed"));
     client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess(ack -> {

@@ -44,7 +44,7 @@ import org.junit.runner.RunWith;
  * reconnect with a kept session: the server re-sends the PUBREL whose PUBREC was sent on the previous connection.
  */
 @RunWith(VertxUnitRunner.class)
-public class MqttClientUnknownPubrelTest {
+public class MqttClientUnknownPubrelTest extends MqttClientTestBase {
 
   private static final int UNKNOWN_PACKET_ID = 42;
 
@@ -54,7 +54,7 @@ public class MqttClientUnknownPubrelTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx, new MqttServerOptions().setPort(0));
+    server = createServer(vertx, new MqttServerOptions().setPort(0));
   }
 
   @After
@@ -78,7 +78,7 @@ public class MqttClientUnknownPubrelTest {
     });
     int port = server.listen().await().actualPort();
 
-    MqttClient client = MqttClient.create(vertx, new MqttClientOptions());
+    MqttClient client = createClient(vertx, new MqttClientOptions());
     client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess());
     completed.awaitSuccess(10000);
   }
@@ -103,7 +103,7 @@ public class MqttClientUnknownPubrelTest {
 
     MqttClientOptions options = new MqttClientOptions();
     options.setVersion(MqttVersion.MQTT_5.protocolLevel());
-    MqttClient client = MqttClient.create(vertx, options);
+    MqttClient client = createClient(vertx, options);
     client.connect(port, "localhost").onComplete(ctx.asyncAssertSuccess());
     completed.awaitSuccess(10000);
   }

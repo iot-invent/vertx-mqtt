@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The in-flight state of a network connection does not survive it: a client connected again starts with free slots.
  */
 @RunWith(VertxUnitRunner.class)
-public class MqttClientStateAfterCloseTest {
+public class MqttClientStateAfterCloseTest extends MqttClientTestBase {
 
   private Vertx vertx;
   private MqttServer server;
@@ -57,7 +57,7 @@ public class MqttClientStateAfterCloseTest {
   @Before
   public void before() {
     vertx = Vertx.vertx();
-    server = MqttServer.create(vertx, new MqttServerOptions().setPort(0));
+    server = createServer(vertx, new MqttServerOptions().setPort(0));
   }
 
   @After
@@ -80,7 +80,7 @@ public class MqttClientStateAfterCloseTest {
     int port = server.listen().await().actualPort();
 
     AtomicInteger expired = new AtomicInteger();
-    MqttClient client = MqttClient.create(vertx, new MqttClientOptions().setMaxInflightQueue(3));
+    MqttClient client = createClient(vertx, new MqttClientOptions().setMaxInflightQueue(3));
     client.publishCompletionExpirationHandler(id -> expired.incrementAndGet());
     client.connect(port, "localhost").await();
     for (int i = 0; i < 3; i++) {
